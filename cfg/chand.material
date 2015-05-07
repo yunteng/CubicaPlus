@@ -1,0 +1,7 @@
+# constitutive model, plus material parameters,
+material type = corotation
+
+compute lame = 1
+
+corotation young = 5000
+corotation possion = 0.08

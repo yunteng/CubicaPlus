@@ -1,0 +1,28 @@
+include ../common.inc
+
+EXECUTABLE = ../../bin/ConvertTetGen
+regression: $(EXECUTABLE)
+ALL: $(EXECUTABLE)
+
+SOURCEC    = main.cpp \
+						 $(UTILSRC) \
+             $(GEOMETRYSRC) \
+             $(MATERIAL)
+
+OBJSC = $(SOURCEC:.cpp=.o)
+
+
+.cpp.o:
+	$(CC) $(CPPFLAGS) $< -o $@
+	
+regression: ALL
+ALL: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE) : $(OBJSC)
+	${CC} $(OBJSC) ${LDFLAGS_COMMON} -o ${EXECUTABLE}
+
+clean:
+	rm -rf *.o ${EXECUTABLE}
+
+cleanall:
+	rm -rf $(OBJSC) $(EXECUTABLE)
