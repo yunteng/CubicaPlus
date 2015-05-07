@@ -11,6 +11,7 @@
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 #endif
 #include <util/SIMPLE_PARSER.h>
 

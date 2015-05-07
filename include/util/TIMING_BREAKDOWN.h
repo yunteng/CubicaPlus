@@ -2,6 +2,7 @@
 #define TIMING_BREAKDOWN_H
 
 #include <SETTINGS.h>
+#include <stdio.h>
 #include <iostream>
 #include <map>
 #include <util/TIMER.h>

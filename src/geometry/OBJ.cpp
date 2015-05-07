@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <util/MERSENNETWISTER.h>
 
+#if _WIN32
+#include <gl/glut.h>
+#elif USING_OSX
+#include <GLUT/glut.h>
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
+#endif
+
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////

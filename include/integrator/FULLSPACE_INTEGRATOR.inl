@@ -189,8 +189,8 @@ Real FULLSPACE_INTEGRATOR<MATERIAL_CACHE, BONE>::computeSelfCollisionSpringForce
 
     VEC3F surfacePosition;
     surfacePosition.setZero();
-    for(int x = 0; x < 3; x++){
-      surfacePosition += lambda[x] * *(_tetMesh->vertex(triangleIndices[x]));
+    for(int y = 0; y < 3; y++){
+      surfacePosition += lambda[y] * *(_tetMesh->vertex(triangleIndices[y]));
     } 
 
     VEC3F normal = surfacePosition - leftVertex;
