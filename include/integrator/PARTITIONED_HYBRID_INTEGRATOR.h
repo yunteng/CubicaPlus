@@ -53,7 +53,7 @@ public:
 
   VECTOR& hessianDiagonal() { return _hessianDiagonal; };
 
-  LU_SOLVER& reducedKiiInv() { return _reducedKiiInv; };
+  LU_SOLVER& reducedKssInv() { return _reducedKssInv; };
 
 
   void resetState()
@@ -107,12 +107,12 @@ private:
   SpMat _hessian;
   VECTOR _partitionedX;
 
-  MATRIX _reducedKii;
+  MATRIX _reducedKss;
 
-  // in case there are zero diagonal blocks in _reducedKii, remove them
-  MATRIX _prunedReducedKii;
+  // in case there are zero diagonal blocks in _reducedKss, remove them
+  MATRIX _prunedReducedKss;
 
-  LU_SOLVER _reducedKiiInv;
+  LU_SOLVER _reducedKssInv;
 
   MATRIX _completeReducedInterfaceJacobians;
 

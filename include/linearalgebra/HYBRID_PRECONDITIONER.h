@@ -14,7 +14,7 @@ class HYBRID_PRECONDITIONER
 public:
   HYBRID_PRECONDITIONER(INTEGRATOR* integrator):
     _integrator(integrator),
-    _diag(integrator->hessianDiagonal()), _dense(integrator->reducedKiiInv())
+    _diag(integrator->hessianDiagonal()), _dense(integrator->reducedKssInv())
   {
 
   }

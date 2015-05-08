@@ -16,13 +16,9 @@ public:
   Real computeElasticEnergy();
   
   VECTOR& computeInternalForce();
-  VECTOR& computeSurfaceInternalForce();
-  VECTOR& computePartialSurfaceInternalForce();
 
   BLOCK_COO_MATRIX& computeStiffnessMatrix();
 
-  void computeSurfaceStiffnessMatrices();
-  void computeSurfaceStiffnessMatrix(int partition, COO_MATRIX& diagMat, COO_MATRIX& offDiagMat);
   void computePartialStiffnessMatrix(int partition, COO_MATRIX& diagMat, COO_MATRIX& offDiagMat, COO_MATRIX& diagMat2);
 
   VECTOR& computePartialInternalForce(int partition);

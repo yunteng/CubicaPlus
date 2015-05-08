@@ -298,18 +298,18 @@ template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeFixedSystemMatrices()
 {
   // resize the diagonal part of the fullspace stiffness matrices
-  BLOCK_SPARSE_MATRIX& surfaceDiagStiffness = _tetMesh->partitionedFullStiffnessDiag();
-  surfaceDiagStiffness.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
-  surfaceDiagStiffness.setBlockDimensions(_fullDofs, _fullDofs);
+  BLOCK_SPARSE_MATRIX& partitionedKff = _tetMesh->partitionedFullStiffnessDiag();
+  partitionedKff.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
+  partitionedKff.setBlockDimensions(_fullDofs, _fullDofs);
 
   // resize the off-diagonal part of the fullspace stiffness matrices
-  BLOCK_SPARSE_MATRIX& surfaceOffDiagStiffness = _tetMesh->partitionedFullStiffnessOffDiag();
-  surfaceOffDiagStiffness.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
-  surfaceOffDiagStiffness.setBlockDimensions(_reducedDofs, _fullDofs);
+  BLOCK_SPARSE_MATRIX& partitionedKsf = _tetMesh->partitionedFullStiffnessOffDiag();
+  partitionedKsf.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
+  partitionedKsf.setBlockDimensions(_reducedDofs, _fullDofs);
 
-  BLOCK_SPARSE_MATRIX& internalDiagStiffness = _tetMesh->partitionedReducedStiffnessDiag();
-  internalDiagStiffness.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
-  internalDiagStiffness.setBlockDimensions(_reducedDofs, _reducedDofs);
+  BLOCK_SPARSE_MATRIX& partitionedBoundaryKss = _tetMesh->partitionedReducedStiffnessDiag();
+  partitionedBoundaryKss.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
+  partitionedBoundaryKss.setBlockDimensions(_reducedDofs, _reducedDofs);
 
 
   BLOCK_COO_MATRIX fixedFullHessian(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
@@ -506,37 +506,37 @@ Real PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 BLOCK_SPARSE_MATRIX& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeSystemMatrix()
 {
-  BLOCK_SPARSE_MATRIX& surfaceDiagStiffness = _tetMesh->partitionedFullStiffnessDiag();
-  BLOCK_SPARSE_MATRIX& surfaceOffDiagStiffness = _tetMesh->partitionedFullStiffnessOffDiag();
-  BLOCK_SPARSE_MATRIX& internalDiagStiffness = _tetMesh->partitionedReducedStiffnessDiag();
+  BLOCK_SPARSE_MATRIX& partitionedKff = _tetMesh->partitionedFullStiffnessDiag();
+  BLOCK_SPARSE_MATRIX& partitionedKsf = _tetMesh->partitionedFullStiffnessOffDiag();
+  BLOCK_SPARSE_MATRIX& partitionedBoundaryKss = _tetMesh->partitionedReducedStiffnessDiag();
 
-  surfaceDiagStiffness.clear();
-  surfaceOffDiagStiffness.clear();
-  internalDiagStiffness.clear();
+  partitionedKff.clear();
+  partitionedKsf.clear();
+  partitionedBoundaryKss.clear();
 
   TIMING_BREAKDOWN::tic();
   for(int x = 0; x < _tetMesh->totalPartitions(); x++){
     if(_fullDofs[x] == 0)
       continue;
-    COO_MATRIX diagMat;
-    COO_MATRIX offDiagMat;
-    COO_MATRIX internalDiagMat;
+    COO_MATRIX Kff;
+    COO_MATRIX Ksf;
+    COO_MATRIX BoundaryKss;
 
-    _fullMaterialCache->computePartialStiffnessMatrix(x, diagMat, offDiagMat, internalDiagMat);
-    surfaceDiagStiffness.equals(diagMat, x, x);
-    surfaceOffDiagStiffness.equals(offDiagMat, x, x);
-    internalDiagStiffness.equals(internalDiagMat, x, x);
+    _fullMaterialCache->computePartialStiffnessMatrix(x, Kff, Ksf, BoundaryKss);
+    partitionedKff.equals(Kff, x, x);
+    partitionedKsf.equals(Ksf, x, x);
+    partitionedBoundaryKss.equals(BoundaryKss, x, x);
 
-    _UTKis[x] = (_transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * surfaceOffDiagStiffness(x, x)).sparseView();
+    _UTKis[x] = (_transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * partitionedKsf(x, x)).sparseView();
 
-    _stiffnessDiagonal.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += surfaceDiagStiffness(x, x).diagonal();
+    _stiffnessDiagonal.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += partitionedKff(x, x).diagonal();
   }
   TIMING_BREAKDOWN::toc("Compute Full Stiffness Matrix");
 
 
   TIMING_BREAKDOWN::tic();
 
-  _reducedKii = _subMaterialCache->computeReducedStiffnessMatrix();
+  _reducedKss = _subMaterialCache->computeReducedStiffnessMatrix();
 
 
   TIMING_BREAKDOWN::toc("Compute Reduced Stiffness Matrix");
@@ -553,35 +553,35 @@ BLOCK_SPARSE_MATRIX& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATE
     int offSet = _tetMesh->partitionRankStartIdx(x);
     int rank = _tetMesh->partitionRank(x);
 
-    _reducedKii.block(offSet, offSet, rank, rank) += _transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * internalDiagStiffness(x, x) * _transformedUs[x].bottomRows(_reducedDofs[x]);
+    _reducedKss.block(offSet, offSet, rank, rank) += _transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * partitionedBoundaryKss(x, x) * _transformedUs[x].bottomRows(_reducedDofs[x]);
   }
   TIMING_BREAKDOWN::toc("Correct Reduced Stiffness Matrix");
 
   TIMING_BREAKDOWN::tic();
-  _reducedKii += _fixedReducedHessian;
+  _reducedKss += _fixedReducedHessian;
   TIMING_BREAKDOWN::toc("Add Fixed Internal Hessian");
 
   computeCollisionMatrices();
 
   TIMING_BREAKDOWN::tic();
   if(_hasEntireFullPartitions){
-    removeZeroBlocks(_reducedKii, _prunedReducedKii);
-    _reducedKiiInv.compute(_prunedReducedKii);
+    removeZeroBlocks(_reducedKss, _prunedReducedKss);
+    _reducedKssInv.compute(_prunedReducedKss);
   }else{
-    _reducedKiiInv.compute(_reducedKii);
+    _reducedKssInv.compute(_reducedKss);
   }
 
 
   TIMING_BREAKDOWN::toc("Invert Reduced Internal Hessian");
 
-  return surfaceDiagStiffness;
+  return partitionedKff;
 }
 
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeCollisionMatrices()
 {
   TIMING_BREAKDOWN::tic();
-  computeSelfCollisionSpringForceJacobian(_SCJacobians, _reducedKii);
+  computeSelfCollisionSpringForceJacobian(_SCJacobians, _reducedKss);
   computeExternalCollisionForceJacobian(_SCJacobians);
 
   COO_MATRIX tmp;
@@ -602,10 +602,10 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
     VECTOR prunedu_s;
     removeZeroVectors(u_s, prunedu_s);
     VECTOR prunedqi;
-    _reducedKiiInv.solve(prunedu_s, prunedqi);
+    _reducedKssInv.solve(prunedu_s, prunedqi);
     fillInZeroVectors(prunedqi, _qi);
   }else{
-    _reducedKiiInv.solve(u_s, _qi);
+    _reducedKssInv.solve(u_s, _qi);
   }
 }
 
@@ -1069,7 +1069,7 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   output.conservativeResize(input.size());
   output.head(_fullRegionGradient.size()) = _SCJacobiansSpMat * u;
-  output.tail(_reducedRegionGradient.size()) = _reducedKii * q;
+  output.tail(_reducedRegionGradient.size()) = _reducedKss * q;
 
   #if USING_SUBSPACE_OPENMP
   #pragma omp parallel for schedule(dynamic)
