@@ -98,10 +98,6 @@ public:
     rigger = new Rigger(skeleton, tetMesh);
 
     rigger->readBoneWeights(outputPath + tetmeshName + ".diffusionSkinningWeights");
-    
-    vector<int> tetPartitions;
-    rigger->buildSkinningPartition(tetPartitions);
-    tetMesh->buildPartitions(tetPartitions);
 
     if(simulate){
       integrator = new Integrator(tetMesh, rigger);
@@ -110,6 +106,7 @@ public:
       optimizer = new Optimizer(integrator, cgSolver);
     }
 
+    // let the simulation start from a non-rest pose
     int preloadFrame = SIMPLE_PARSER::getInt("preload frame", 0);
     if(preloadFrame != 0){
       tetMesh->reset();
@@ -135,18 +132,14 @@ public:
   }
 
   void step(){
-    if(startFrame < endFrame && currentFrame > endFrame)
-      exit(0);
-
-    if(startFrame > endFrame && currentFrame < endFrame)
+    if(currentFrame > endFrame)
       exit(0);
 
     TIMING_BREAKDOWN::startFrame();
 
+    // load skeleton
     string filename = posePath + skeletonPrefix + IO::itoPaddedString(currentFrame) + ".skeleton";
     if(skeleton->loadFrame(filename)){
-
-      skeleton->fixSkeletonStructure();
       bool fromRest = false;
 
       TIMING_BREAKDOWN::tic();

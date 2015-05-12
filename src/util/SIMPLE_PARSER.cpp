@@ -25,8 +25,6 @@ along with Cubica.  If not, see <http://www.gnu.org/licenses/>.
 #include <cctype>
 #include <util/SIMPLE_PARSER.h>
 #include <material/COROTATION.h>
-#include <material/STVK.h>
-#include <material/INVERTIBLE.h>
 
 //////////////////////////////////////////////////////////////////////////////
 // whitespace helper
@@ -259,7 +257,7 @@ MATERIAL *SIMPLE_PARSER::readMaterial(string filename)
   string materialType("");
   materialType = getString("material type", materialType);
 
-  if (materialType.compare("stvk") == 0)
+  /*if (materialType.compare("stvk") == 0)
   {
     double lambda = 10.0;
     double mu = 50.0;
@@ -268,7 +266,7 @@ MATERIAL *SIMPLE_PARSER::readMaterial(string filename)
     material = new STVK(lambda, mu);
     cout << "==================================================" << endl;
     cout << " Material is St-VK, lambda = " << lambda << " mu = " << mu << endl;
-  }else
+  }else*/
   if (materialType.compare("corotation") == 0)
   {
     double lambda = 10.0;
@@ -283,12 +281,12 @@ MATERIAL *SIMPLE_PARSER::readMaterial(string filename)
       double possion = getFloat("corotation possion", 20000);
       lambda =  young * possion / ( 1.0 + possion) / ( 1.0 - 2.0 * possion);
       mu = young / 2.0 / (1.0 + possion);
-      cout << "lambda " << lambda << " mu " << mu << endl;
+      // cout << "lambda " << lambda << " mu " << mu << endl;
     }
-    
-    material = new COROTATION(lambda, mu);
     cout << "==================================================" << endl;
+    material = new COROTATION(lambda, mu);
     cout << " Material is corotation, lambda = " << lambda << " mu = " << mu << endl;
+    cout << "==================================================" << endl;
   }
   /*else if (materialType.compare("mooney-rivlin") == 0)
   {
@@ -331,13 +329,13 @@ MATERIAL *SIMPLE_PARSER::readMaterial(string filename)
   }
 
   // set the invertible wrapper if necessary
-  bool invertible = false;
-  invertible = SIMPLE_PARSER::getBool("invertible", invertible);
-  if (invertible)
-  {
-    cout << " Setting material to invertible" << endl;
-    material = new INVERTIBLE(material);
-  }
+  // bool invertible = false;
+  // invertible = SIMPLE_PARSER::getBool("invertible", invertible);
+  // if (invertible)
+  // {
+  //   cout << " Setting material to invertible" << endl;
+  //   material = new INVERTIBLE(material);
+  // }
   return material;
 }
 

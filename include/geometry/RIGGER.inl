@@ -307,9 +307,13 @@ void RIGGER<BONE>::buildSkinningPartition(vector<vector<int> >& partitionSurface
   partitionSurfaceVertices.clear();
   partitionSurfaceVertices.resize(_skeleton->totalBones());
 
-  vector<vector<int> >& partitionedVertices = _tetMesh->partitionedVertices();
+  if(_tetMesh->partitionedVertices().size() != _skeleton->totalBones()){
+    vector<int> tetPartitions;
+    buildSkinningPartition(tetPartitions);
+    _tetMesh->buildPartitions(tetPartitions);
+  }
 
-  assert(_skeleton->totalBones() == partitionedVertices.size());
+  vector<vector<int> >& partitionedVertices = _tetMesh->partitionedVertices();
 
   for(unsigned int x = 0; x < partitionedVertices.size(); x++){
     for(int y = 0; y < partitionedVertices[x].size(); y++){

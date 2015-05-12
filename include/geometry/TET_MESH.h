@@ -110,6 +110,8 @@ public:
   /*
   IO function
   */
+  // read TetGen mesh and convert to 
+  // our format
   bool readTetGen(string prefix);
   bool readMeshFile(const string& filename);
   void readMeshFile(FILE* file);

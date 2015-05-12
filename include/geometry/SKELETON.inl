@@ -1,14 +1,12 @@
 #include <queue>
 
 template<class BONE>
-SKELETON<BONE>::SKELETON():
-  _numberOfRecords(0)
+SKELETON<BONE>::SKELETON()
 {
 }
 
 template<class BONE>
-SKELETON<BONE>::SKELETON(const string& filename):
-  _numberOfRecords(0)
+SKELETON<BONE>::SKELETON(const string& filename)
 {
   FILE* file = fopen(filename.c_str(), "r");
   if(file == NULL){
@@ -118,11 +116,6 @@ bool SKELETON<BONE>::loadFrame(const string& filename)
       BONE* bone = new BONE(file);
       _bones.push_back(bone);
     }else{
-      // if(index == 31){
-      //   index++;
-      // }
-      // if(index == 36)
-      //   index = 38;
       _bones[index++]->updateTransform(file);
     }
   }
@@ -156,37 +149,6 @@ void SKELETON<BONE>::writeFrame(const string& filename)
 }
 
 template<class BONE>
-void SKELETON<BONE>::clearRecords()
-{
-  for(unsigned int x = 0; x < _bones.size(); x++)
-    _bones[x]->clearRecords();
-  _numberOfRecords = 0;
-}
-template<class BONE>
-void SKELETON<BONE>::recordFrame(const string& filename)
-{
-  FILE* file = fopen(filename.c_str(), "r");
-  if(file == NULL){
-    cout << "No skeleton file " << filename << " found!" << endl;
-    return;
-  }
-
-  int index = 0;
-  while(!feof(file))
-  {
-    _bones[index++]->recordTransform(file);
-  }
-  fclose(file);
-  fixRecentRecordStructure();
-  _numberOfRecords++;
-}
-template<class BONE>
-void SKELETON<BONE>::getTransformFromRestUsingRecords(int boneID, const VEC3F& pos, vector<VEC3F>& output){
-  assert(boneID >= 0 && boneID < _bones.size());
-  _bones[boneID]->transformFromRestUsingRecords(pos, output);
-}
-
-template<class BONE>
 void SKELETON<BONE>::drawBones()
 {
   glDisable(GL_DEPTH_TEST);
@@ -199,56 +161,7 @@ template<class BONE>
 void SKELETON<BONE>::fixSkeletonStructure()
 {
   for(unsigned int x = 0; x < _boneHierarchy.size(); x++){
-    // if(_boneHierarchy[x] == 3 || _boneHierarchy[x] == 7 || (_boneHierarchy[x] > 24 && _boneHierarchy[x] != 35)){
-      // _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    // }else
-    // if(_boneHierarchy[x] == 8 || _boneHierarchy[x] == 31 || _boneHierarchy[x] == 36 || _boneHierarchy[x] == 37){
-    //   _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    // }
-    if(_boneHierarchy[x] == 8){
-      _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    }
-    // else if(_boneHierarchy[x] == 6 || _boneHierarchy[x] == 7 || )
-    //   _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    // else if(_boneHierarchy[x] >= 25 && _boneHierarchy[x] <= 29)
-    //   _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    // else if(_boneHierarchy[x] >= 44 && _boneHierarchy[x] <= 51)
-    //   _bones[_boneHierarchy[x]]->updateAccordingToParent();
-    else
-      _bones[_boneHierarchy[x]]->updateTransformAccordingToParent();
-  }
-}
-template<class BONE>
-void SKELETON<BONE>::fixRecentRecordStructure()
-{
-  for(unsigned int x = 0; x < _boneHierarchy.size(); x++){
-    _bones[_boneHierarchy[x]]->updateRecentRecordTransformAccordingToParent();
-  }
-}
-
-template<class BONE>
-void SKELETON<BONE>::interpolateFromRestToRecord(int step, int total, int recordID)
-{
-  if(recordID < 0 || recordID > _numberOfRecords){
-    cout << "invalid recordID!! " << recordID << endl;
-    return;
-  }
-  Real t = 1.0 * step / total;
-  for(unsigned int x = 0; x < _bones.size(); x++){
-    _bones[_boneHierarchy[x]]->interpolateFromRestToRecord(t, recordID);
-  }
-}
-
-template<class BONE>
-void SKELETON<BONE>::interpolateFromPreviousToCurrentRecord(int step, int total, int recordID)
-{
-  if(recordID < 1 || recordID > _numberOfRecords){
-    cout << "invalid recordID!! " << recordID << endl;
-    return;
-  }
-  Real t = 1.0 * step / total;
-  for(unsigned int x = 0; x < _bones.size(); x++){
-    _bones[_boneHierarchy[x]]->interpolateFromPreviousToCurrentRecord(t, recordID);
+    _bones[_boneHierarchy[x]]->updateTransformAccordingToParent();
   }
 }
 
@@ -256,11 +169,6 @@ template<class BONE>
 void SKELETON<BONE>::computeRelativeTransform(int x, int y, VEC3F& relativeTranslation, QUATERNION& relativeRotation)
 {
   _bones[x]->computeRelativeRT(_bones[y], relativeTranslation, relativeRotation);
-  // if(x < y){
-  //   _bones[x]->computeRelativeRT(_bones[y], relativeTranslation, relativeRotation);
-  // }else{
-  //   _bones[y]->computeRelativeRT(_bones[x], relativeTranslation, relativeRotation);
-  // }
 }
 template<class BONE>
 VEC3F SKELETON<BONE>::computeRestJointPosition(int x, int y)

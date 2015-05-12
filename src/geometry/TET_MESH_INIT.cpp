@@ -9,6 +9,7 @@ TET_MESH::TET_MESH():
 #else
   _totalCores = 1;
 #endif
+  cout << "Using " << _totalCores << " cores" << endl;
   string path = SIMPLE_PARSER::getString("output path", "./");
   string meshName = SIMPLE_PARSER::getString("tet mesh name", "");
   string prefix = path + meshName;
@@ -87,7 +88,7 @@ void TET_MESH::init()
     _R.setZero();
 
     if(verbose){
-      cout << "initialize each tet...";
+      cout << " Initialize each tet...";
       flush(cout);
     }
     #if USING_OPENMP

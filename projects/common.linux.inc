@@ -26,11 +26,8 @@ GEOMETRYSRC = ../../src/geometry/TET.cpp \
 					 ../../src/geometry/OBJ.cpp
 
 MATERIAL = ../../src/material/COROTATION.cpp \
-					 ../../src/material/STVK.cpp \
-					 ../../src/material/INVERTIBLE.cpp \
 					 ../../src/material/FULLSPACE_COROTATION_CACHE.cpp \
 					 ../../src/material/PARTITIONED_FULLSPACE_COROTATION_CACHE.cpp \
-					 ../../src/material/FULLSPACE_INVERTIBLE_CACHE.cpp \
 					 ../../src/material/SUBSPACE_COROTATION_CACHE.cpp \
 					 ../../src/material/PARTITIONED_SUBSPACE_COROTATION_CACHE.cpp
 

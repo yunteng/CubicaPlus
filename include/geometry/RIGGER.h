@@ -34,6 +34,8 @@ public:
   void constrainBoneTets();
   void buildRigidSkinning();
   void buildSkinningPartition(vector<int>& tetPartitions);
+
+  // update the mesh from previous pose or the rest pose
   void updateSkinning(bool fromRest)
   {
     if(_skinningMethod.compare("dual quaternion") == 0)
@@ -50,15 +52,18 @@ public:
   void updateDualQuaternionSkinning(bool fromRest);
 
   /*
-  diffusion skinning
+  compute diffusion skinning weights
   */
   void buildDiffusionSkinning();
   
   /*
-  used for collision detection
+  partition either the original mesh or its low-res embedding, used for collision detection
   */
   void buildSkinningPartition(vector<vector<int> >& partitionSurfaceVertices, vector<vector<int> >& partitionTets, bool useLowresTets);
 
+  /*
+  pull back the training samples to before-skinning space
+  */
   void inverseTransformTrainingSamples();
 
   /*
@@ -77,6 +82,9 @@ private:
   
   void computeConductionRHS(int boneIndex, Real conductance, VECTOR& rhs);
 
+  /*
+  normalize the weight sum for each vertex to 1
+  */
   void normalizeWeights();
 
   struct orderByValueGreaterThan{

@@ -488,6 +488,9 @@ void TET_MESH::writeNewConstraints(vector<VEC3F*>& newConstraints)
   system(faceFile.c_str());
 
 }
+//////////////////////////////////////////////
+// read TetGen mesh and convert to our format
+//////////////////////////////////////////////
 bool TET_MESH::readTetGen(string prefix)
 {
   Real scale = SIMPLE_PARSER::getFloat("mesh scaling", 1.0);
