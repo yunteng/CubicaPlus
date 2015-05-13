@@ -7,6 +7,9 @@
 #include <util/IO.h>
 #include <geometry/TET_MESH.h>
 
+/*
+self collision force cubature
+*/
 class SCF_CUBATURE
 {
 public:
@@ -17,11 +20,6 @@ public:
   Real weight;
   void read(FILE* file);
 };
-// struct orderByValueGreaterThan{
-//   bool operator()(pair<int, pair<Real, Real> > const& a, pair<int, pair<Real, Real> > const& b) const{
-//     return (a.second.first + a.second.second) > (b.second.first + b.second.second);
-//   }
-// };
 
 struct orderByValueGreaterThan{
   bool operator()(pair<int, Real > const& a, pair<int, Real > const& b) const{
@@ -29,6 +27,10 @@ struct orderByValueGreaterThan{
   }
 };
 
+/*
+container to hold all the self collision 
+force cubatures between a pair of parititons
+*/
 class PAIRWISE_SCF_CUBATURES
 {
 public:
@@ -37,13 +39,15 @@ public:
 
   bool blendCubatures(VECTOR& currentCoords, vector<SCF_CUBATURE>& output, bool isCheb = false);
 
-  // vector<vector<SCF_CUBATURE> >& cubatures() { return _cubatures; };
-
   inline bool& isNeighbor()              { return _isNeighbor; };
   inline Real& safeDistance()            { return _safeDistance; };
   inline int& leftPartition()            { return _leftPartition; };
   inline int& rightPartition()           { return _rightPartition; };
 
+  /*
+  check if the relative position between
+  leftPartition and rightPartition has changed since the previous frame. If not, simply return the previous lookup results
+  */
   inline bool cacheValid(const VEC3F& translation, const QUATERNION& rotation) { 
     if((translation - _cachedTranslation).squaredNorm() > 1e-6){
       _cachedTranslation = translation;
@@ -72,25 +76,30 @@ private:
 
   vector<vector<SCF_CUBATURE> > _cubatures;
 
+  // if _leftPartition and _rightPartition are neighbors
   bool _isNeighbor;
+
+  // the smallest distance between 
+  // leftPartition and rightPartitio
+  // that guarantee they are not in 
+  // collision, not being used for now
   Real _safeDistance;
   
   int _leftPartition;
   int _rightPartition;
 
-
+  // previous lookup transformations
   VEC3F _cachedTranslation;
   QUATERNION _cachedRotation;
   bool _cachedFoundMatch;
   vector<pair<int, Real> > _cachedLeftVertices;
   vector<pair<int, Real> > _cachedRightVertices;
-  // vector<Real> _sampleNorms;
-
-  // vector<VEC3F> _translations;
-  // vector<QUATERNION> _rotations;
   
 };
 
+/*
+self collision force cubature loader
+*/
 class SCF_CUBATURE_LOADER
 {
 public:
@@ -98,6 +107,8 @@ public:
   ~SCF_CUBATURE_LOADER();
   bool loadAllCubatures(const string& dirName);
   
+  // lookup the cubature pool and select
+  // the nearest cubature set
   bool getCubatureSurfaceVertices(pair<int, int> partitionPair, const VEC3F& relativeTranslation, const QUATERNION& relativeRotation, vector<pair<int, Real> >& leftVertices, vector<pair<int, Real> >& rightVertices);
 
 private:

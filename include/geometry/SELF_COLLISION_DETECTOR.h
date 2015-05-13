@@ -49,7 +49,7 @@ public:
 
   vector<EX_COLLISION_INFO>& externalCollisionPoints() { return _externalCollisionPoints; }
 
-  Real vertexVsTetSCD(bool scfOverride = false);
+  Real vertexVsTetSCD();
 
   void drawSelfCollisionPoints();
   void drawExternalCollisionPoints();

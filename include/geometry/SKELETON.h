@@ -69,6 +69,10 @@ private:
   vector<VEC3F> _colors;
   vector<vector<pair<int, Real> > > _skinning;
 
+  /*
+  top down ordering of the bones,
+  _boneHierarchy[0] is the root
+  */
   vector<int> _boneHierarchy;
 };
 

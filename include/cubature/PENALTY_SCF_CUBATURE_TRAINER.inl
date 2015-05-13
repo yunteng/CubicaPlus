@@ -20,7 +20,12 @@ PENALTY_SCF_CUBATURE_TRAINER<BONE>::~PENALTY_SCF_CUBATURE_TRAINER()
 {
 
 }
-
+///////////////////////////////////////////////
+// compute the relative transformation betwwen 
+// leftPartition and rightPartition, transform 
+// the surface position of rightPartition to the 
+// local coordinate system of leftPartition
+///////////////////////////////////////////////
 template<class BONE>
 VECTOR PENALTY_SCF_CUBATURE_TRAINER<BONE>::getTransformedColumn(string poseID)
 {
@@ -45,6 +50,13 @@ VECTOR PENALTY_SCF_CUBATURE_TRAINER<BONE>::getTransformedColumn(string poseID)
 
   return result;
 }
+///////////////////////////////////////////////
+// some training poses may have the same 
+// relateive transformation between leftPartition
+// and rightPartition, group them together and 
+// only select the pose that has the maximum 
+// collision points for training 
+///////////////////////////////////////////////
 template<class BONE>
 void PENALTY_SCF_CUBATURE_TRAINER<BONE>::groupPoses(const vector<string>& snapshotIdx, vector<string>& trainingPoses)
 {
@@ -107,7 +119,9 @@ void PENALTY_SCF_CUBATURE_TRAINER<BONE>::groupPoses(const vector<string>& snapsh
   }
   cout << "turned " << snapshotIdx.size() << " samples into " << trainingPoses.size() << " groups" << endl;
 }
+///////////////////////////////////////////////
 // find which neighboring partition this vertex is closest to
+///////////////////////////////////////////////
 template<class BONE>
 int PENALTY_SCF_CUBATURE_TRAINER<BONE>::closestNeighborPartition(int partition, int vertexID)
 {
@@ -128,7 +142,10 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::closestNeighborPartition(int partition, 
   // cout << "closest neighbor of vertex " << vertexID << " in parition " << partition << ": " << closestNeighbor << endl;
   return closestNeighbor;
 }
-
+///////////////////////////////////////////////
+// read the collision vertices and their force 
+// responces for a single pose
+///////////////////////////////////////////////
 template<class BONE>
 int PENALTY_SCF_CUBATURE_TRAINER<BONE>::loadCollisionPoints(const string& posePrefix)
 {
@@ -189,7 +206,10 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::loadCollisionPoints(const string& posePr
   fclose(file);
   return _individualCollisionResponses.size();
 } 
-
+///////////////////////////////////////////////
+// load the training candidates, compute their 
+// subspace collision responses
+///////////////////////////////////////////////
 template<class BONE>
 int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
 {
@@ -198,7 +218,6 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
     _numberOfSamples = 0;
     return _numberOfSamples;
   }
-  // cout << "left partition " << _leftPartition << " right partition " << _rightPartition << endl;
 
   loadCollisionPoints(poseID);
   _totalCandidates = _individualCollisionResponses.size();
@@ -208,6 +227,10 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
     return _numberOfSamples;
   }
 
+  // the collision responses were recorded 
+  // for every Newton iteration that was run
+  // for this frame, use all of them for training
+  // the cubatures
   _numberOfSamples = _individualCollisionResponses[0].collisionResponses.size();
 
   string skeletonFilename = SIMPLE_PARSER::getString("pose path", "") + SIMPLE_PARSER::getString("skeleton prefix", "") + poseID + ".skeleton";
@@ -221,16 +244,19 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
 
   vector<MATRIX3>& transformMatrix = _rigger->skinningRotation();
 
+  // reduced collision responses
   _samplePenaltyForces.resize(_numberOfSamples);
 
   int leftRank = _tetMesh->partitionRank(_leftPartition);
   int rightRank = _tetMesh->partitionRank(_rightPartition);
 
+  // for each Newton iteration
   for(unsigned int x = 0; x < _numberOfSamples; x++){
 
     _samplePenaltyForces[x].resize(leftRank + rightRank);
     _samplePenaltyForces[x].setZero();
 
+    // for each pair of vertex-traingle collision pair
     for(unsigned int y = 0; y < _individualCollisionResponses.size(); y++)
     {
       VECTOR& collisionResponse = _individualCollisionResponses[y].collisionResponses[x];
@@ -245,7 +271,13 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
                        _tetMesh->vertexID(face.vertices[1]),
                        _tetMesh->vertexID(face.vertices[2])
                       };
-      
+      /*
+      the partition ID recorded during full sim
+      might be different the final partition ID,
+      especially near the interfaces, just ignore them. A better solution is to 
+      figure out the correct partition for thes
+      vertices
+      */
       bool valid = true;
 
       int partitionedVertexID = _tetMesh->partitionedVertexID(vertexPartition, vertexID);
@@ -262,20 +294,22 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
 
       VECTOR reducedCollisionResponse(leftRank + rightRank);
       reducedCollisionResponse.setZero();
-
+      // push back an zero vector if we decide 
+      // to ignore this candidate so the cubature
+      // training won't pick it
       if(!valid){
         _individualCollisionResponses[y].reducedCollisionResponses.push_back(reducedCollisionResponse);
         continue;
       }
 
+      // rotate the forces using the inverse of 
+      // the skinning rotation
       collisionResponse.head<3>() = transformMatrix[vertexID].transpose() * collisionResponse.head<3>();
       for(int z = 0; z < 3; z++){
         collisionResponse.segment<3>((z + 1) * 3) = transformMatrix[triVID[z]].transpose() * collisionResponse.segment<3>((z + 1) * 3);
       }
-      // cout << __LINE__ << endl;
-
+      // project the force
       VECTOR reducedVertexForce = _tetMesh->partitionVertexBasis(vertexPartition, partitionedVertexID).transpose() * collisionResponse.head<3>();
-      // cout << __LINE__ << endl;
 
       VECTOR reducedTriVertexForces[3];
       for(int z = 0; z < 3; z++){
@@ -283,25 +317,21 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
       }
 
       
-
+      // pack the reduced force columns
       if(_leftPartition == vertexPartition){
-        // cout << __LINE__ << endl;
         _samplePenaltyForces[x].head(leftRank) += reducedVertexForce;
         reducedCollisionResponse.head(leftRank) += reducedVertexForce;
       }else{
 
         _samplePenaltyForces[x].tail(rightRank) += reducedVertexForce;
         reducedCollisionResponse.tail(rightRank) += reducedVertexForce;
-        // cout << __LINE__ << endl;
       }
       if(_leftPartition == trianglePartition){
-        // cout << __LINE__ << endl;
         for(int z = 0; z < 3; z++){
           _samplePenaltyForces[x].head(leftRank) += reducedTriVertexForces[z];
           reducedCollisionResponse.head(leftRank) += reducedTriVertexForces[z];
         }
       }else{
-        // cout << __LINE__ << endl;
         for(int z = 0; z < 3; z++){
           _samplePenaltyForces[x].tail(rightRank) += reducedTriVertexForces[z];
           reducedCollisionResponse.tail(rightRank) += reducedTriVertexForces[z];
@@ -310,7 +340,7 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
       _individualCollisionResponses[y].reducedCollisionResponses.push_back(reducedCollisionResponse);
     }
   }
-
+  // normalize the force snapshot
   _inverseMagnitudes.resize(_samplePenaltyForces.size());
   for(unsigned int x = 0; x < _samplePenaltyForces.size(); x++){
     _inverseMagnitudes[x] = 1.0 / _samplePenaltyForces[x].norm();
@@ -321,7 +351,10 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
 
   return _numberOfSamples;
 }
-
+///////////////////////////////////////////////
+// get the concatenated subspace force for
+// a collision pair
+///////////////////////////////////////////////
 template<class BONE>
 VECTOR PENALTY_SCF_CUBATURE_TRAINER<BONE>::getCandidateQuantitiy(int sampleID)
 {
@@ -334,6 +367,11 @@ VECTOR PENALTY_SCF_CUBATURE_TRAINER<BONE>::getCandidateQuantitiy(int sampleID)
 
   return trainingColumn;
 }
+///////////////////////////////////////////////
+// write out the cubatures, the writeCubatures 
+// function in NNHTP_CUBATURE_GENERATOR
+// wouldn't work
+///////////////////////////////////////////////
 template<class BONE>
 void PENALTY_SCF_CUBATURE_TRAINER<BONE>::writePairwiseCubatures(const vector<int>& keyPoints, const vector<Real>& keyWeights, FILE* file)
 {
@@ -349,6 +387,5 @@ void PENALTY_SCF_CUBATURE_TRAINER<BONE>::writePairwiseCubatures(const vector<int
 
     double dweight = keyWeights[x];
     fwrite((void*)&dweight, sizeof(double), 1, file);
-    // cout << "vertex partition " << scPair.vertexPartition << " face partition " << scPair.trianglePartition << " vid " << scPair.vertexID << " fid " << scPair.surfaceID << " weight " << dweight << endl;
   }
 }

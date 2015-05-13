@@ -9,12 +9,27 @@ PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::PA
   _rigger(rigger),
   _scd(NULL)
 {
+  //initialize the full space material force & matrix computation helper
   _fullMaterialCache = new FULL_MATERIAL_CACHE(tetMesh);
+
+  //initialize the subspace material force & matrix computation helper
   _subMaterialCache = new SUB_MATERIAL_CACHE(tetMesh);
+
+  /*
+  functions in _fullMaterialCache are called
+  before those in _subMaterialCache, let 
+  _subMaterialCache be aware of to save redundant 
+  function calls
+  */ 
   _subMaterialCache->setCoupledWithFullspace(true);
 
+  //initialize self collision detector
   _scd = new SELF_COLLISION_DETECTOR<BONE>(tetMesh, rigger);
+
+  // read the self-collison penalty spring constant
   _scfMultiplier = SIMPLE_PARSER::getFloat("scf multiplier", 1.0);
+
+  // read the domain interface spring constant
   _interfaceSpringConstant = SIMPLE_PARSER::getFloat("interface spring constant", 100.0);
 
   if(SIMPLE_PARSER::getBool("verbose", true)){
@@ -22,12 +37,16 @@ PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::PA
     cout << " Interface spring constant: " << _interfaceSpringConstant << endl;
   }
 
+  // dynamic or quasistatic simulation?
   _dynamic = SIMPLE_PARSER::getBool("dynamic", false);
 
+  /*
+  resize a bunch of vectors to the number of skeletal partitions
+  */
   _transformedUs.resize(_tetMesh->totalPartitions());
   _untransformedUs.resize(_tetMesh->totalPartitions());
 
-  _UTKis.resize(_tetMesh->totalPartitions());
+  _UTKsf.resize(_tetMesh->totalPartitions());
 
   _previousFullDofs.resize(_tetMesh->totalPartitions(), 0);
 
@@ -38,12 +57,19 @@ PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::PA
 
   _reducedSCJacobians.resize(_tetMesh->totalPartitionRank(), _tetMesh->totalPartitionRank());
 
+  /*
+  used by openmp to parallelize self collision 
+  force jacobian computation 
+  */
   _SCJacobianCopies = new MATRIX[_tetMesh->totalCores()];
   for(int x = 0; x < _tetMesh->totalCores(); x++){
     _SCJacobianCopies[x].resize(_tetMesh->totalPartitionRank(), _tetMesh->totalPartitionRank());
   }
 
-  computeReducedInterfaceSpringJacobians(_completeReducedInterfaceJacobians);
+  // the subspace interface spring jacobian
+  // is constant, so just comptue it once 
+  // and store it
+  computeReducedInterfaceSpringJacobians(_reducedInterfaceJacobians);
 
 
   if(_dynamic){
@@ -60,26 +86,37 @@ PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::PA
     _acceleration.setZero();
     _velocityOld.setZero();
 
-    _natualOrderedMass.resize(_tetMesh->dofs());
+    _defaultOrderMass.resize(_tetMesh->dofs());
+
+    /*
+    the massVector in tetMesh store the mass per vertex, stretch it to all 3 dimensions
+    */
     VECTOR& MVec = _tetMesh->massVector();
     for(int x = 0; x < MVec.size(); x++){
-      _natualOrderedMass[x * 3] = MVec[x];
-      _natualOrderedMass[x * 3 + 1] = MVec[x];
-      _natualOrderedMass[x * 3 + 2] = MVec[x];
+      _defaultOrderMass[x * 3] = MVec[x];
+      _defaultOrderMass[x * 3 + 1] = MVec[x];
+      _defaultOrderMass[x * 3 + 2] = MVec[x];
     }
 
     _reducedMasses.resize(_tetMesh->totalPartitions());
-    _tetMesh->changeToPartitionOrder(_natualOrderedMass, _diagMass);
+    _tetMesh->changeToPartitionOrder(_defaultOrderMass, _diagMass);
+
+    // compute the reduced mass matrix for each partition
     for(int x = 0; x < _tetMesh->totalPartitions(); x++){
       int offset = _tetMesh->partitionDofStartIdx(x);
       int dofs = _tetMesh->partitionedVertices(x).size() * 3;
       _reducedMasses[x] = _tetMesh->partitionBasis(x).transpose() * _diagMass.segment(offset, dofs).asDiagonal() * _tetMesh->partitionBasis(x);
     }
-
+    /*
+    used by the dynamic oracles to keep track of 
+    the vertices that should be kept in full space region
+    */
     _keepDynamicRegion.resize(_tetMesh->unconstrainedNodes());
     _keepDynamicRegion.setZero();
   }
-
+  /*
+  used by the contact oracle, denote whether a vertex is in full space region
+  */
   _isFullsim.conservativeResize(_tetMesh->unconstrainedNodes());
   _isFullsim.setZero();
 
@@ -104,15 +141,25 @@ PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::~P
     _scd = NULL;
   }
 }
+//////////////////////////////////////////
+// compute the deformation gradients and 
+// decompose them as see fit by the 
+// material formulation
+//////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeMaterialCache()
 {
   _fullMaterialCache->cachePartialDecompositions();
   _subMaterialCache->cacheDecompositions();
 }
+
+//////////////////////////////////////////
+// compute the full sim region around vertices in collision
+//////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeFullsimRegions()
 {
+  // gather current in-collision vertices
   vector<SELF_COLLISION_INFO>& selfCollisionPoints = _scd->selfCollisionPoints();
   vector<pair<VEC3F*, SURFACE*> >& externalCollisionPairs = _tetMesh->collisionPairs();
   vector<EX_COLLISION_INFO>& externalCollisionPoints = _scd->externalCollisionPoints();
@@ -156,6 +203,7 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   vector<int> contactVerticesCopy = contactVertices;
 
+  // gather in-collision vertices from the previous frame
   copy(_previousCollisionPoints.begin(), _previousCollisionPoints.end(), back_inserter(contactVertices));
 
   _previousCollisionPoints = contactVerticesCopy;
@@ -165,15 +213,20 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   TIMING_BREAKDOWN::tic();
 
+  // compute full space region based on the in-collision vertices
   if(!_dynamic)
-    _tetMesh->initPartitionedAdaptiveMixedSim(contactVertices, _isFullsim);
+    _tetMesh->initPartitionedHybridSim(contactVertices, _isFullsim);
   else
-    _tetMesh->initPartitionedAdaptiveMixedSim(contactVertices, _keepDynamicRegion, _isFullsim);
+    _tetMesh->initPartitionedHybridSim(contactVertices, _keepDynamicRegion, _isFullsim);
 
   TIMING_BREAKDOWN::toc("Init Partitioned Adaptive Mixed Sim");
 
   _subMaterialCache->registerFullsimTets();
 }
+
+//////////////////////////////////////////
+// initialize a simulation step
+//////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::initializeImplicitStep()
 {
@@ -185,22 +238,24 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   TIMING_BREAKDOWN::tic();
   _tetMesh->recoverX();
+  // store initial position in case we need to redo this frame
   _initPosition = _tetMesh->x();
   TIMING_BREAKDOWN::toc("Recover X");
 
-  // TIMING_BREAKDOWN::tic();
-  // _rigger->computeSkinningTransformation(_rigger->skinningRotation(), _inverseTransform, _skinningDisp);
-  // TIMING_BREAKDOWN::toc("Compute Skinning Transformation");
-
+  // cache the skinning rotations for the cubature tets
   TIMING_BREAKDOWN::tic();
   _subMaterialCache->cacheKeyTetTransforms(_rigger->skinningRotation());
   TIMING_BREAKDOWN::toc("Cache Key Tet Transforms");
 
   TIMING_BREAKDOWN::tic();
-  _scd->vertexVsTetSCD(false);
+  _scd->vertexVsTetSCD();
   TIMING_BREAKDOWN::toc("Self Collision Detection");
 
+  // compute full region using contact and dynamic oracle
   computeFullsimRegions();
+
+
+  // check if any partition is entirely in full sim
   _hasEntireFullPartitions = false;
   for(unsigned int x = 0; x < _reducedDofs.size(); x++){
     if(_reducedDofs[x] == 0){
@@ -211,6 +266,8 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   TIMING_BREAKDOWN::tic();
 
+
+  // transform and reorder the basis for each partition based on the new ordering induced by condensation
   for(int x = 0; x < _tetMesh->totalPartitions(); x++){
     if(_fullDofs[x] == 0)
       continue;
@@ -237,6 +294,8 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
   VECTOR restDisp = _tetMesh->x() - _rigger->skinningDisp();
   vector<MATRIX3>& skinningRotation = _rigger->skinningRotation();
 
+
+  // sync the subspace coordinates q with the newly updated (by skinning) full space displacement 
   #if USING_SUBSPACE_OPENMP
   #pragma omp parallel for schedule(static)
   #endif
@@ -256,35 +315,51 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
       _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x)) = _untransformedUs[x].bottomRows(_reducedDofs[x]).transpose() * perPartitionRestDisp[x].tail(_reducedDofs[x]);
   }
 
-  TIMING_BREAKDOWN::toc("Recover transformed q");
+  TIMING_BREAKDOWN::toc("Recover q");
 
+  // change the orginal mesh displacement vector to partition order
   TIMING_BREAKDOWN::tic();
   _tetMesh->changeToPartitionOrder(_tetMesh->x(), _partitionedX);
 
-  if(!_dynamic){
-    _tetMesh->changeToPartitionOrder(_rigger->skinningDisp(), _workspace);
+  /*
+  Some part of the current subspace region 
+  might have been in full sim in the 
+  previous frame so it may endure out-of-basis
+  deformations, which cannot be properly removed 
+  by the basis.
+  We can stomp them away by recomputing the 
+  displacement of the subspace region of each 
+  partition using their subspace coordinates and
+  skinning displacement.
+  */
+  _tetMesh->changeToPartitionOrder(_rigger->skinningDisp(), _workspace);
 
-    for(int x = 0; x < _tetMesh->totalPartitions(); x++){
-      if(_fullDofs[x] != 0){
-        _partitionedX.segment(_tetMesh->partitionDofStartIdx(x) + _fullDofs[x], _reducedDofs[x]) = _workspace.segment(_tetMesh->partitionDofStartIdx(x) + _fullDofs[x], _reducedDofs[x]) + _transformedUs[x].bottomRows(_reducedDofs[x]) * _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
-      }else{
-        VECTOR dispDelta = _tetMesh->partitionBasis(x) * _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
-        vector<int>& vertexIDs = _tetMesh->partitionedVertices(x);
+  for(int x = 0; x < _tetMesh->totalPartitions(); x++){
+    if(_fullDofs[x] != 0){
+      _partitionedX.segment(_tetMesh->partitionDofStartIdx(x) + _fullDofs[x], _reducedDofs[x]) = _workspace.segment(_tetMesh->partitionDofStartIdx(x) + _fullDofs[x], _reducedDofs[x]) + _transformedUs[x].bottomRows(_reducedDofs[x]) * _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
+    }else{
+      VECTOR dispDelta = _tetMesh->partitionBasis(x) * _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
+      vector<int>& vertexIDs = _tetMesh->partitionedVertices(x);
 
-        #if USING_SUBSPACE_OPENMP
-        #pragma omp parallel for schedule(static)
-        #endif
-        for(unsigned int y = 0; y < vertexIDs.size(); y++){
-          dispDelta.segment<3>(y * 3) = _rigger->skinningRotation()[vertexIDs[y]] * dispDelta.segment<3>(y * 3);
-        }
-        _partitionedX.segment(_tetMesh->partitionDofStartIdx(x), _reducedDofs[x]) = _workspace.segment(_tetMesh->partitionDofStartIdx(x), _reducedDofs[x]) + dispDelta;
+      #if USING_SUBSPACE_OPENMP
+      #pragma omp parallel for schedule(static)
+      #endif
+      for(unsigned int y = 0; y < vertexIDs.size(); y++){
+        dispDelta.segment<3>(y * 3) = _rigger->skinningRotation()[vertexIDs[y]] * dispDelta.segment<3>(y * 3);
       }
+      _partitionedX.segment(_tetMesh->partitionDofStartIdx(x), _reducedDofs[x]) = _workspace.segment(_tetMesh->partitionDofStartIdx(x), _reducedDofs[x]) + dispDelta;
     }
-    _tetMesh->restoreNatualOrder(_partitionedX, _tetMesh->x());
   }
+  _tetMesh->restoreDefaultOrder(_partitionedX, _tetMesh->x());
 
   TIMING_BREAKDOWN::toc("Update Reduced Sim Positions");
 
+  /*
+  the interface spring jacobians (both full and 
+  reduced) remains constant though a simulation
+  frame. So we just need to compute them once.
+  Add the mass matrix if we are doing dynamic simulation
+  */
   TIMING_BREAKDOWN::tic();
   computeFixedSystemMatrices();
   TIMING_BREAKDOWN::toc("Compute Fixed System Matrices");
@@ -293,16 +368,21 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
     _acceleration = (1.0 / _dt / _dt) * (_tetMesh->x() - _positionOld) - (1.0 / _dt) * _velocityOld;
   
 }
-
+////////////////////////////////////////////////
+// the interface spring jacobians (both full and 
+// reduced) remains constant though a simulation
+// frame. So we just need to compute them once.
+// Add the mass matrix if we are doing dynamic simulation
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeFixedSystemMatrices()
 {
-  // resize the diagonal part of the fullspace stiffness matrices
+  // resize a bunch of matrices based on the 
+  // current condensation partitioning
   BLOCK_SPARSE_MATRIX& partitionedKff = _tetMesh->partitionedFullStiffnessDiag();
   partitionedKff.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
   partitionedKff.setBlockDimensions(_fullDofs, _fullDofs);
 
-  // resize the off-diagonal part of the fullspace stiffness matrices
   BLOCK_SPARSE_MATRIX& partitionedKsf = _tetMesh->partitionedFullStiffnessOffDiag();
   partitionedKsf.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
   partitionedKsf.setBlockDimensions(_reducedDofs, _fullDofs);
@@ -318,15 +398,15 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
   _fixedReducedHessian.resize(_tetMesh->totalPartitionRank(), _tetMesh->totalPartitionRank());
   _fixedReducedHessian.setZero();
 
-  computeInterfaceSpringJacobians(fixedFullHessian, _fixedReducedHessian);
-
   _SCJacobians.resizeAndWipe(_tetMesh->totalPartitions(), _tetMesh->totalPartitions());
   _SCJacobians.setBlockDimensions(_fullDofs, _fullDofs);
 
+  // compute the interface spring jacobians
+  computeInterfaceSpringJacobians(fixedFullHessian, _fixedReducedHessian);
 
   if(_dynamic){
 
-    _tetMesh->changeToPartitionOrder(_natualOrderedMass, _diagMass);
+    _tetMesh->changeToPartitionOrder(_defaultOrderMass, _diagMass);
 
     // add the mass matrix
     #if USING_SUBSPACE_OPENMP
@@ -354,13 +434,18 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
     }
   }
 
+  // convert to Eigen format for fast matrix-vector multiplication
   COO_MATRIX tmp;
   fixedFullHessian.toCOOMatrix(tmp);
   tmp.toSpMat(_fixedFullHessian);
 
-  // _hessianDiagonal = _fixedFullHessian.diagonal();
   _stiffnessDiagonal = _fixedFullHessian.diagonal();
 }
+////////////////////////////////////////////////
+// finalize the simualtion step, update the mesh 
+// if we are doing dynamic simulation, register 
+// the vertices that need to be kept in full sim
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::finalizeImplicitStep()
 {
@@ -368,6 +453,10 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   _previousFullDofs  = _fullDofs;
 
+
+  // dynamic oracle, check if the velocities or 
+  // accelerations of the current full sim regions 
+  // are small enough so that we can deactivate them
   if(_dynamic){
     _velocityOld = (1.0 / _dt) * (_tetMesh->x() - _positionOld);
     _positionOld = _tetMesh->x();
@@ -402,11 +491,6 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
         Real diff = abs(fullsimAvgVelocity - reducedsimAvgVelocity) / fullsimAvgVelocity;
 
-        // cout << " fullsimAvgVelocity " << fullsimAvgVelocity << endl
-        //      << " reducedsimAvgVelocity " << reducedsimAvgVelocity << endl
-        //      << " diff " << diff << endl;
-
-
         VECTOR accleration = partitionedAcceleration.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x] + _reducedDofs[x]);
 
         Real fullsimAvgAcceleration = 0;
@@ -422,10 +506,6 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
         reducedsimAvgAcceleration /= _reducedDofs[x] / 3;
 
         Real accDiff = abs(fullsimAvgAcceleration - reducedsimAvgAcceleration) / fullsimAvgAcceleration;
-
-        // cout << " fullsimAvgAcceleration " << fullsimAvgAcceleration << endl
-             // << " reducedsimAvgAcceleration " << reducedsimAvgAcceleration << endl
-             // << " accDiff " << accDiff << endl;
 
         if(fullsimAvgAcceleration > 0.2 || fullsimAvgAcceleration > 0.2){
           vector<int>& vertexIDs = _tetMesh->partitionedVertices(x);
@@ -444,6 +524,7 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::setPosition(VECTOR& newPosition)
 {
+  // update the positions for the full sim regions
   if(activeFullDofs() > 0){
     #if USING_SUBSPACE_OPENMP
     #pragma omp parallel for schedule(static)
@@ -456,6 +537,9 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
     _qi = newPosition.tail(_reducedRegionGradient.size());
   }
 
+  /*
+  compute the displacement delta of the subspace region using _qi
+  */
   vector<VECTOR> dispDeltas(_tetMesh->totalPartitions());
 
   #if USING_SUBSPACE_OPENMP
@@ -472,6 +556,7 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
       }
     }
   }
+  // update the subspace region
   #if USING_SUBSPACE_OPENMP
   #pragma omp parallel for schedule(static)
   #endif
@@ -485,24 +570,38 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
   _tetMesh->q() -= _qi;
 
-  _tetMesh->restoreNatualOrder(_partitionedX, _tetMesh->x());
+  // map back to ogrinal mesh displacement vector
+  _tetMesh->restoreDefaultOrder(_partitionedX, _tetMesh->x());
 
   if(_dynamic){
     _acceleration = (1.0 / _dt / _dt) * (_tetMesh->x() - _positionOld) - (1.0 / _dt) * _velocityOld;
   }
 }
-
+////////////////////////////////////////////////
+// compute the energy of the system
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 Real PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeSystemEnergy()
 {
+  /*
+  approximate the elastic energy using the 
+  material force cubatures. This may not be very 
+  accurate if we have full space regions, but 
+  currently we are not using the energy directly 
+  for the Newton process
+  */
   _energy = _subMaterialCache->computeElasticEnergy();
 
+  // add kenematic energy
   if(_dynamic)
-    _energy += 0.5 * _dt * _dt * _acceleration.dot(_natualOrderedMass.asDiagonal() * _acceleration);
+    _energy += 0.5 * _dt * _dt * _acceleration.dot(_defaultOrderMass.asDiagonal() * _acceleration);
   
   return _energy;
 }
-
+////////////////////////////////////////////////
+// compute the system matrices, partitioned Kff, 
+// Ksf and Kss
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 BLOCK_SPARSE_MATRIX& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeSystemMatrix()
 {
@@ -527,7 +626,8 @@ BLOCK_SPARSE_MATRIX& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATE
     partitionedKsf.equals(Ksf, x, x);
     partitionedBoundaryKss.equals(BoundaryKss, x, x);
 
-    _UTKis[x] = (_transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * partitionedKsf(x, x)).sparseView();
+    // U_s^T * K_sf
+    _UTKsf[x] = (_transformedUs[x].bottomRows(_reducedDofs[x]).transpose() * partitionedKsf(x, x)).sparseView();
 
     _stiffnessDiagonal.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += partitionedKff(x, x).diagonal();
   }
@@ -564,65 +664,82 @@ BLOCK_SPARSE_MATRIX& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATE
   computeCollisionMatrices();
 
   TIMING_BREAKDOWN::tic();
+  // if any partition is entirely in full sim
+  // _reducedKss would have zero diagonal blocks,
+  // and the matrix inversion would fail
+  // remove those blocks by shrinking the matrix
+  // if necessary
   if(_hasEntireFullPartitions){
     removeZeroBlocks(_reducedKss, _prunedReducedKss);
     _reducedKssInv.compute(_prunedReducedKss);
   }else{
     _reducedKssInv.compute(_reducedKss);
   }
-
-
   TIMING_BREAKDOWN::toc("Invert Reduced Internal Hessian");
 
   return partitionedKff;
 }
 
+////////////////////////////////////////////////
+// compute collision matrices
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeCollisionMatrices()
 {
   TIMING_BREAKDOWN::tic();
+  // self collison jacobian
   computeSelfCollisionSpringForceJacobian(_SCJacobians, _reducedKss);
+  // external collision jacobian
   computeExternalCollisionForceJacobian(_SCJacobians);
 
+  // convert to eigen format for fat matrix-vector
+  // multiplication
   COO_MATRIX tmp;
   _SCJacobians.toCOOMatrix(tmp);
   tmp.toSpMat(_SCJacobiansSpMat);
 
+  // update the diagonal of the entire system matrix
   _hessianDiagonal = _stiffnessDiagonal + _SCJacobiansSpMat.diagonal();
 
+  // add the interface spring jocobians
+  // (and mass matrix if dynamic)
   _SCJacobiansSpMat += _fixedFullHessian;
   _SCJacobiansSpMat.makeCompressed();
 
   TIMING_BREAKDOWN::toc("Compute Collision Jacobians");
 }
+////////////////////////////////////////////////
+// This is called when we are doing subspace-only 
+// simulation, compute qi using prefactored 
+// system matrix
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeQi(const VECTOR& u_s)
 {
-  if(_hasEntireFullPartitions){
-    VECTOR prunedu_s;
-    removeZeroVectors(u_s, prunedu_s);
-    VECTOR prunedqi;
-    _reducedKssInv.solve(prunedu_s, prunedqi);
-    fillInZeroVectors(prunedqi, _qi);
-  }else{
-    _reducedKssInv.solve(u_s, _qi);
-  }
+  _reducedKssInv.solve(u_s, _qi);
 }
 
+////////////////////////////////////////////////
+// Compute the RHS of the linear system
+////////////////////////////////////////////////
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 VECTOR& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeSystemForce()
 {
+  // material force of the full space region
   vector<VECTOR>& fullForces = _fullMaterialCache->computePartialInternalForce();
 
   _fullRegionGradient.conservativeResize(_tetMesh->partitionFullsimDofStartIdx(_tetMesh->totalPartitions()));
 
+  // reduced material force of the subspace region
   _reducedRegionGradient = _subMaterialCache->computeInternalForce();
   _reducedRegionGradient *= -1.0;
 
+  // inertia force
   if(_dynamic){ 
-    _tetMesh->changeToPartitionOrder(_natualOrderedMass.asDiagonal() * _acceleration, _accelerationForces);
+    _tetMesh->changeToPartitionOrder(_defaultOrderMass.asDiagonal() * _acceleration, _accelerationForces);
   }  
 
+  // subspace boundary force
   TIMING_BREAKDOWN::tic();
   #if USING_SUBSPACE_OPENMP
   #pragma omp parallel for schedule(static)
@@ -652,19 +769,22 @@ VECTOR& PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, B
   }
   TIMING_BREAKDOWN::toc("projection force");
 
+  // self collision force
   TIMING_BREAKDOWN::tic();
   _energy += computeSelfCollisionSpringForces(_fullRegionGradient, _reducedRegionGradient);
 
+  // external collision force
   _energy += computeExternalCollisionForces(_fullRegionGradient);
 
   TIMING_BREAKDOWN::toc("Compute Collision Forces");
 
   TIMING_BREAKDOWN::tic();
-
+  // interface spring force
   _energy += computeInterfaceSpringForces(_fullRegionGradient, _reducedRegionGradient);
 
   TIMING_BREAKDOWN::toc("Compute Coupling Forces");
 
+  // pack everything into one big vector
   _gradient.conservativeResize(_fullRegionGradient.size() + _reducedRegionGradient.size());
   _gradient.head(_fullRegionGradient.size()) = _fullRegionGradient;
   _gradient.tail(_reducedRegionGradient.size()) = _reducedRegionGradient;
@@ -690,28 +810,18 @@ Real PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
     Real multiplier = _scfMultiplier * info.avgArea * info.cubatureWeight;
 
-    // VEC3F triVertices[3];
     VEC3F surfacePosition;
     surfacePosition.setZero();
     for(int x = 0; x < 3; x++){
-      // triVertices[x] = *(_tetMesh->vertex(triangleIndices[x]));
       surfacePosition += lambda[x] * *(_tetMesh->vertex(triangleIndices[x]));
     }
-    
-    /*VEC3F triNormal = (triVertices[1] - triVertices[0]).cross(triVertices[2] - triVertices[0]);
-    triNormal.normalize();
-
-    VEC3F normal = surfacePosition - leftVertex;
-    if(normal.dot(triNormal) < 0){
-      continue;
-    }*/
 
     MATRIX3& M = info.M;
 
     VEC3F penaltyForce = info.M * (surfacePosition - leftVertex) * multiplier;
 
     /*
-    TODO::add dynamic
+    TODO::add dynamic damping
     */
 
 
@@ -1081,9 +1191,9 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
     output.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += _tetMesh->partitionedFullStiffnessDiag()(x, x) * u.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]);
 
     if(_reducedDofs[x] > 0){
-      output.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += _UTKis[x].transpose() * q.segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
+      output.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]) += _UTKsf[x].transpose() * q.segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
 
-      output.segment(_fullRegionGradient.size() + _tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x)) += _UTKis[x] * u.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]);
+      output.segment(_fullRegionGradient.size() + _tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x)) += _UTKsf[x] * u.segment(_tetMesh->partitionFullsimDofStartIdx(x), _fullDofs[x]);
     }
   }
 }
@@ -1091,7 +1201,7 @@ void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 template<class FULL_MATERIAL_CACHE, class SUB_MATERIAL_CACHE, class BONE>
 void PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE>::computeInterfaceSpringJacobians(BLOCK_COO_MATRIX& fullSystemMatrix, MATRIX& reducedSystemMatrix)
 {
-  reducedSystemMatrix = _completeReducedInterfaceJacobians;
+  reducedSystemMatrix = _reducedInterfaceJacobians;
 
   map<pair<int, int>, vector<pair<int, int> > > interfaceSprings = _tetMesh->interfaceSprings();
 
@@ -1218,16 +1328,7 @@ Real PARTITIONED_HYBRID_INTEGRATOR<FULL_MATERIAL_CACHE, SUB_MATERIAL_CACHE, BONE
 
       fullForceVector.segment<3>(_tetMesh->partitionFullsimDofStartIdx(leftPartition) + leftVID * 3) += diff;
 
-      fullForceVector.segment<3>(_tetMesh->partitionFullsimDofStartIdx(rightPartition) + rightVID * 3) -= diff;
-
-      // if(subtractWay){
-        // VECTOR force = _tetMesh->partitionVertexBasis(leftPartition, originalLeftVID) * leftq - _tetMesh->partitionVertexBasis(rightPartition, originalRightVID) * rightq;
-
-        // reducedForceVector.segment(_tetMesh->partitionRankStartIdx(leftPartition), _tetMesh->partitionRank(leftPartition)) -= _tetMesh->partitionVertexBasis(leftPartition, originalLeftVID).transpose() * force;
-
-        // reducedForceVector.segment(_tetMesh->partitionRankStartIdx(rightPartition), _tetMesh->partitionRank(rightPartition)) += _tetMesh->partitionVertexBasis(rightPartition, originalRightVID).transpose() * force;
-      // }
-      
+      fullForceVector.segment<3>(_tetMesh->partitionFullsimDofStartIdx(rightPartition) + rightVID * 3) -= diff;      
     }
   }
   cout << "Interface spring energy " << energy << endl;

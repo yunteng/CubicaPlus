@@ -425,7 +425,7 @@ void TET_MESH::changeToPartitionOrder(const VECTOR& input, VECTOR& output)
     }
   }
 }
-void TET_MESH::restoreNatualOrder(const VECTOR& input, VECTOR& output)
+void TET_MESH::restoreDefaultOrder(const VECTOR& input, VECTOR& output)
 {
   assert(input.size() == _partitionedDofs);
 
@@ -455,7 +455,7 @@ void TET_MESH::restoreNatualOrder(const VECTOR& input, VECTOR& output)
     }
   }
 }
-void TET_MESH::restoreNatualOrder(const vector<VECTOR>& input, VECTOR& output)
+void TET_MESH::restoreDefaultOrder(const vector<VECTOR>& input, VECTOR& output)
 {
   output.conservativeResize(_unconstrainedSize * 3);
   output.setZero();
@@ -541,11 +541,9 @@ void TET_MESH::resetPartitionedAdaptiveMixedSim()
       _adaptivePartitionedVertexOrdering[x][y] = y;
   }
   _partitionFullsimDofStartIdx[_totalPartitions] = 0;
-  
-  _maxContactNodeGeodist = -1;
 }
 
-void TET_MESH::initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VECTOR& isFulsim)
+void TET_MESH::initPartitionedHybridSim(vector<int>& contactVertices, VECTOR& isFulsim)
 {
   isFulsim.setZero();
 
@@ -633,7 +631,7 @@ void TET_MESH::initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VEC
   }
 }
 
-void TET_MESH::initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VECTOR& keep, VECTOR& isFulsim)
+void TET_MESH::initPartitionedHybridSim(vector<int>& contactVertices, VECTOR& keep, VECTOR& isFulsim)
 {
   isFulsim.setZero();
 
@@ -718,92 +716,6 @@ void TET_MESH::initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VEC
     cout << "full sim dofs for partition " << x - 1 << " "<< _partitionedFullsimDofs[x - 1] << endl;
     _partitionFullsimDofStartIdx[x] = _partitionFullsimDofStartIdx[x - 1] + _partitionedFullsimDofs[x - 1];
   }
-}
-
-void TET_MESH::interpolateToLowresMesh(const VECTOR& input, VECTOR& output)
-{
-  assert(input.size() == _vertices.size());
-  output.conservativeResize(_lowresRestPose.size());
-  #if USING_OPENMP
-  #pragma omp parallel for schedule(static)
-  #endif
-  for(int x = 0; x < _lowSurfaceVertexSize; x++){
-    pair<int, VEC3F>& coord = _highToLowSurfaceBaryCentricCoordinates[x];
-    
-    TRIANGLE& face = _surfaceFaces[coord.first];
-
-    int indices[] = {_vertexID[face.vertices[0]],
-                     _vertexID[face.vertices[1]],
-                     _vertexID[face.vertices[2]]};
-
-    VEC3F& lambda = coord.second;
-    output[x] = lambda[0] * input[indices[0]] + 
-                lambda[1] * input[indices[1]] + 
-                lambda[2] * input[indices[2]];
-  }
-  #if USING_OPENMP
-  #pragma omp parallel for schedule(static)
-  #endif
-  for(int x = _lowSurfaceVertexSize; x < _lowresVertices.size(); x++){
-    pair<int, QUATERNION>& coord = _highToLowInternalBaryCentricCoordinates[x - _lowSurfaceVertexSize];
-
-    TET& tet = _tets[coord.first];
-
-    int indices[] = {_vertexID[tet.vertices[0]],
-                     _vertexID[tet.vertices[1]],
-                     _vertexID[tet.vertices[2]],
-                     _vertexID[tet.vertices[3]]};
-
-    QUATERNION& lambda = coord.second;
-    output[x] = lambda.x() * input[indices[0]] + 
-                lambda.y() * input[indices[1]] + 
-                lambda.z() * input[indices[2]] +
-                lambda.w() * input[indices[3]];
-  }
-
-}
-
-void TET_MESH::interpolateFromLowresMesh(const VECTOR& input, VECTOR& output)
-{
-  assert(input.size() == _lowresVertices.size());
-  output.conservativeResize(_unconstrainedSize);
-  #if USING_OPENMP
-  #pragma omp parallel for schedule(static)
-  #endif
-  for(int x = 0; x < _surfaceVertexSize; x++){
-    pair<int, VEC3F>& coord = _lowToHighSurfaceBaryCentricCoordinates[x];
-    
-    TRIANGLE& face = _lowresSurfaceFaces[coord.first];
-
-    int indices[] = {_lowresVertexID[face.vertices[0]],
-                     _lowresVertexID[face.vertices[1]],
-                     _lowresVertexID[face.vertices[2]]};
-
-    VEC3F& lambda = coord.second;
-    output[x] = lambda[0] * input[indices[0]] + 
-                lambda[1] * input[indices[1]] + 
-                lambda[2] * input[indices[2]];
-  }
-  #if USING_OPENMP
-  #pragma omp parallel for schedule(static)
-  #endif
-  for(int x = _surfaceVertexSize; x < _unconstrainedSize; x++){
-    pair<int, QUATERNION>& coord = _lowToHighInternalBaryCentricCoordinates[x - _surfaceVertexSize];
-
-    TET& tet = _lowresTets[coord.first];
-
-    int indices[] = {_lowresVertexID[tet.vertices[0]],
-                     _lowresVertexID[tet.vertices[1]],
-                     _lowresVertexID[tet.vertices[2]],
-                     _lowresVertexID[tet.vertices[3]]};
-
-    QUATERNION& lambda = coord.second;
-    output[x] = lambda.x() * input[indices[0]] + 
-                lambda.y() * input[indices[1]] + 
-                lambda.z() * input[indices[2]] +
-                lambda.w() * input[indices[3]];
-  }
-
 }
 
 void TET_MESH::computeAndWritePartitionedFullsimTetSurfaces(const string& filename)

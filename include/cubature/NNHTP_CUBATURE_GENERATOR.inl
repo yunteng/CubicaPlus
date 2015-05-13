@@ -261,7 +261,10 @@ vector<int> NNHTP_CUBATURE_GENERATOR<APP>::NNHTP_randomPickCandidates(vector<int
   }
   return candidates;
 }
-
+//////////////////////////////////////////////
+// Verify the approximation error of the 
+// cubatures
+//////////////////////////////////////////////
 template<class APP>
 void NNHTP_CUBATURE_GENERATOR<APP>::verifyCubaturePoints(const VECTOR& b)
 { 
@@ -283,6 +286,8 @@ void NNHTP_CUBATURE_GENERATOR<APP>::verifyCubaturePoints(const VECTOR& b)
     _keyPointIDs.push_back(candidate.first);
     _keyWeights.push_back(candidate.second);
 
+    // keep just enough cubatures that achive 
+    // the desired accurary
     if(residual.norm() / b.norm() < _app->errorTolerance())
       break;
 

@@ -52,10 +52,6 @@ public:
   Real computeExternalCollisionForces(VECTOR& forceVector);
   void writeSelfCollisionResponses(const string& filename);
 
-  static void staticGetMatVecMult(void* integrator, const VECTOR& input, VECTOR& output)
-  {
-    static_cast<FULLSPACE_INTEGRATOR<MATERIAL_CACHE, BONE>*>(integrator)->getMatVecMult(input, output);
-  }
   VECTOR& systemMatrixDiag() { return _systemMatrixDiag; };
 
   void resetState()
@@ -73,13 +69,29 @@ private:
   RIGGER<BONE>* _rigger;
 
   VECTOR _gradient;
+  /*
+  the system matrix without the collision jacobian part
+  */
   COO_MATRIX _hessian;
+  /*
+  penalty collision force jacobian
+  */
   COO_MATRIX _collisionJacobian;
   Real _energy;
 
+  /*
+  diagonal of _hessian + _collisionJacobian
+  */
   VECTOR _systemMatrixDiag;
+
+  /*
+  save the initial position in case we need to re-run the simulation
+  */
   VECTOR _initPosition;
 
+  /*
+  dynamic or quasistatic simulation?
+  */
   bool _dynamic;
 
   VECTOR _positionOld;
@@ -89,6 +101,9 @@ private:
 
   Real _dt;
 
+  /*
+  store self collision points and their penalty forces
+  */
   struct SELF_COLLISION_PAIR{
     int vertexID;
     int surfaceID;

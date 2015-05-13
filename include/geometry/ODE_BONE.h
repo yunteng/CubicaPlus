@@ -192,19 +192,14 @@ public:
     return ret;
   }
 
-  inline DUAL_QUATERNION dualQuaternionFromRest()
+  inline DUAL_QUATERNION& dualQuaternionFromRest()
   {
     return _dqFromRest;
   }
 
-  inline DUAL_QUATERNION dualQuaternionFromPrevious()
-  {
-    QUATERNION relativeRotation = _rotation * _previousRotation.conjugate();
-
-    VEC3F relativeTranslation = _translation - relativeRotation._transformVector(_previousTranslation);
-    return DUAL_QUATERNION(relativeRotation, relativeTranslation);
-  }
-
+  /*
+  compute the relative rotation and translation between this and otherBone
+  */
   void computeRelativeRT(ODE_BONE* otherBone, VEC3F& relativeTranslation, QUATERNION& relativeRotation)
   {
     relativeRotation = _rotation * (otherBone->_rotation).conjugate();

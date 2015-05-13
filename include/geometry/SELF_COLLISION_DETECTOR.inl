@@ -635,7 +635,7 @@ Real SELF_COLLISION_DETECTOR<BONE>::lowresCubatureSelfCollisionTest()
 }
 
 template<class BONE>
-Real SELF_COLLISION_DETECTOR<BONE>::vertexVsTetSCD(bool scfOverride)
+Real SELF_COLLISION_DETECTOR<BONE>::vertexVsTetSCD()
 {
   static int frameCnt = 25;
 
@@ -656,7 +656,7 @@ Real SELF_COLLISION_DETECTOR<BONE>::vertexVsTetSCD(bool scfOverride)
       }
 
     }
-    if(!_useScfCubature || scfOverride)
+    if(!_useScfCubature)
       return multiDomainVertexVsTetSCD();
     else
       return lowresCubatureSelfCollisionTest();

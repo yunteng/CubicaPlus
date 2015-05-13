@@ -12,8 +12,10 @@ public:
   PENALTY_SCF_CUBATURE_TRAINER(SUBSPACE_TET_MESH* tetMesh, RIGGER<BONE>* rigger = NULL);
   ~PENALTY_SCF_CUBATURE_TRAINER();
 
+  // load the training candidates, compute their 
+  // subspace collision responses
   int gatherTrainingData(const string& poseID);
-  // int gatherTrainingData(vector<string>& snapshotIdx);
+
   void clearSamples() { _samplePenaltyForces.clear(); };
 
   inline int numberOfSamples() { return _numberOfSamples; };
@@ -22,6 +24,9 @@ public:
   inline void setPartitions(int left, int right) { _leftPartition = left; _rightPartition = right;}
 
   inline const vector<VECTOR>& samples() { return _samplePenaltyForces; };
+
+  // get the concatenated subspace force 
+  // for a collision pair
   VECTOR getCandidateQuantitiy(int sampleID);
 
   inline int getTrueID(int sampleID) { return sampleID; }
@@ -29,10 +34,6 @@ public:
   inline int maxKeyPoints() 
   { 
     return _totalCandidates;
-    // int keyPoints = SIMPLE_PARSER::getInt("max internal key tets", 1000);
-    // keyPoints = keyPoints < _totalCandidates ? keyPoints : _totalCandidates;
-
-    // return keyPoints;
   }
   inline Real errorTolerance()
   {
@@ -52,28 +53,34 @@ public:
   }
   inline string cubatureFilename()
   {
-    // string _cubatureFilename = _tetMesh->filename();
-    // if(SIMPLE_PARSER::getBool("transformed basis", false))
-    // {
-    //   _cubatureFilename += ".transformed";
-    // }
-    // _cubatureFilename += ".internalForceCubature";
     return _cubatureFilename;
   }
   inline void setCubatureFilename(const string& name)
   {
     _cubatureFilename = name;
   }
-
+  // some training poses may have the same 
+  // relateive transformation between leftPartition
+  // and rightPartition, group them together and 
+  // only select the pose that has the maximum 
+  // collision points for training 
   void groupPoses(const vector<string>& snapshotIdx, vector<string>& trainingPoses);
   
+  // compute the relative transformation betwwen 
+  // leftPartition and rightPartition, transform 
+  // the surface position of rightPartition to the 
+  // local coordinate system of leftPartition
   VECTOR getTransformedColumn(string poseID);
-
+  // write out the cubatures, the writeCubatures 
+  // function in NNHTP_CUBATURE_GENERATOR
+  // wouldn't work
   void writePairwiseCubatures(const vector<int>& keyPoints, const vector<Real>& keyWeights, FILE* file);
 
 private:
-  vector<string> getSnapshotsWithCollisions(const string& dataPath);
+  // find which neighboring partition this vertex is closest to
   int closestNeighborPartition(int partition, int vertexID);
+  // read the collision vertices and their force 
+  // responces for a single pose
   int loadCollisionPoints(const string& posePrefix);
 
 
@@ -82,9 +89,13 @@ private:
 
   RIGGER<BONE>* _rigger;
 
+  // the current partition pari we are
+  // training on
   int _leftPartition;
   int _rightPartition;
 
+  // helper structure to store all the
+  // information of a vertex-traingle pair
   struct SELF_COLLISION_PAIR{
     int vertexID;
     int surfaceID;
@@ -95,16 +106,22 @@ private:
   };
   vector<SELF_COLLISION_PAIR> _individualCollisionResponses;
 
+  // reduced collision responses
   vector<VECTOR> _samplePenaltyForces;
-  // vector<VECTOR> _sampleIndividualTetInternalForces;
+
+  // the inverse magnitude of _samplePenaltyForces
   vector<Real> _inverseMagnitudes;
 
+  // the ids of the cubature points
   vector<int> _keyPoints;
   vector<Real> _keyWeights;
 
   string _cubatureFilename;
 
+  // number of force snapshots for a
+  // single frame
   int _numberOfSamples;
+  // left partition rank + right partition rank
   int _sampleDimension;
   int _totalCandidates;
 };

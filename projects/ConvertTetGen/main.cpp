@@ -11,7 +11,7 @@ public:
   APPLICATION(string config):
     configName(config),
     currentFrame(0),
-    lastFrame(0)
+    previousFrame(0)
   {
     if(!SIMPLE_PARSER::parse(configName))
         exit(0);
@@ -75,7 +75,7 @@ public:
   TET_MESH* tetMesh;
 
   int currentFrame;
-  int lastFrame;
+  int previousFrame;
 
   string configName;
 

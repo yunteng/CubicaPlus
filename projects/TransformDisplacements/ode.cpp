@@ -23,7 +23,7 @@ public:
     rigger(NULL),
     drawSkeleton(false),
     currentFrame(0),
-    lastFrame(0)
+    previousFrame(0)
   {
     if(!SIMPLE_PARSER::parse(configName))
         exit(0);
@@ -144,7 +144,7 @@ public:
   int endFrame;
   int skipFrame;
   int currentFrame;
-  int lastFrame;
+  int previousFrame;
 
   bool drawSkeleton;
 

@@ -116,7 +116,7 @@ void PARTITIONED_SUBSPACE_INTEGRATOR<SUBSPACE_MATERIAL_CACHE, BONE>::initializeI
   _initX = _tetMesh->x();
   _initQ = _tetMesh->q();
 
-  TIMING_BREAKDOWN::toc("Recover transformed q");
+  TIMING_BREAKDOWN::toc("Recover q");
 
   TIMING_BREAKDOWN::tic();
   _subMaterialCache->cacheKeyTetTransforms(skinningRotation);
@@ -156,7 +156,7 @@ void PARTITIONED_SUBSPACE_INTEGRATOR<SUBSPACE_MATERIAL_CACHE, BONE>::setPosition
     restDisp[x] = _tetMesh->partitionBasis(x) * _tetMesh->q().segment(_tetMesh->partitionRankStartIdx(x), _tetMesh->partitionRank(x));
   }
 
-  _tetMesh->restoreNatualOrder(restDisp, _tmpWorkspace);
+  _tetMesh->restoreDefaultOrder(restDisp, _tmpWorkspace);
 
   VECTOR& worldDisp = _tetMesh->x();
   #if USING_SUBSPACE_OPENMP

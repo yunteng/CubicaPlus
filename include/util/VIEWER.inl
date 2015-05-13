@@ -108,7 +108,7 @@ void VIEWER<T>::idleFunc()
 	if(animate){
     bool getScreenshot = SIMPLE_PARSER::getBool("get screen shot", false);
     if(getScreenshot)
-      screenshot(simulator->renderPath, simulator->lastFrame);
+      screenshot(simulator->renderPath, simulator->previousFrame);
 		simulator->step();
     if(step)
       animate = false;

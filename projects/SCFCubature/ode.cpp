@@ -86,6 +86,7 @@ public:
 
     rigger->readBoneWeights(outputPath + tetmeshName + ".diffusionSkinningWeights");
 
+    // partition the mesh
     vector<int> tetPartitions;
     rigger->buildSkinningPartition(tetPartitions);
     tetMesh->buildPartitions(tetPartitions);
@@ -99,18 +100,26 @@ public:
 
       vector<string> snapshotIdx = IO::getAllSnapshots(dataPath);
 
+      // for each pair of skeletal partitions
       for(int otherPartition = partition + 1; otherPartition < tetMesh->totalPartitions(); otherPartition++){
         cout << "training cubature for partitions " << partition << " and " << otherPartition << endl;
-
+        // set the current training pair
         cubatureApp->setPartitions(partition, otherPartition);
 
+        // group poses with the same relative 
+        // skeleton configuration together
         vector<string> trainingPoses;
         cubatureApp->groupPoses(snapshotIdx, trainingPoses);
+
+        // transform the surface position of 
+        // otherParition to the local bone 
+        // coordinate system of partition
         vector<VECTOR> transformedPositions;
         for(unsigned int x = 0; x < trainingPoses.size(); x++){
           transformedPositions.push_back(cubatureApp->getTransformedColumn(trainingPoses[x]));
-          // cout << transformedPositions.back().norm2() << endl;
         }
+        // compute a low rank basis out of 
+        // transformedPositions
         MATRIX eigenVectors;
         VECTOR eigenValues;
         MATRIX_UTIL::pcaEigen(transformedPositions, false, eigenVectors, eigenValues);
@@ -124,10 +133,13 @@ public:
         stringstream cubatureFile("");  
         cubatureFile << tetMesh->filename() << ".scfcubature." << partition << "." << otherPartition;
 
+        // write the basis
         FILE* file = fopen(cubatureFile.str().c_str(), "wb");
         IO::write(eigenVectors, file);
         IO::write(basisCoordinates, file);
 
+        // for each training frame, training the
+        // self-collision cubatures
         for(unsigned int x = 0; x < trainingPoses.size(); x++){
           cubatureApp->clearSamples();
           cout << "trainingPose " << trainingPoses[x] << endl;
@@ -137,11 +149,14 @@ public:
             fwrite((void*)&cubatureSize, sizeof(int), 1, file);
             continue;
           }
-            
+          // ignore the output from cubatureGenerator
           cubatureApp->setCubatureFilename("./ignore");
           cubatureGenerator->generateCubatures();
           vector<int>& keyPointIDs = cubatureGenerator->keyPointIDs();
           vector<Real>& keyWeights = cubatureGenerator->keyWeights();
+          // save the correct cubature format 
+          // these cubatures will be loaded from
+          // SCF_CUBATURE_LOADER 
           cubatureApp->writePairwiseCubatures(keyPointIDs, keyWeights, file);
         }
         fclose(file);

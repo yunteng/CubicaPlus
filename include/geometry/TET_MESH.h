@@ -211,8 +211,8 @@ public:
   void changeToPartitionOrder(const VECTOR& input, vector<VECTOR>& output);
   void changeToDefaultPartitionOrder(const VECTOR& input, vector<VECTOR>& output);
   void changeToPartitionOrder(const VECTOR& input, VECTOR& output);
-  void restoreNatualOrder(const vector<VECTOR>& input, VECTOR& output);
-  void restoreNatualOrder(const VECTOR& input, VECTOR& output);
+  void restoreDefaultOrder(const vector<VECTOR>& input, VECTOR& output);
+  void restoreDefaultOrder(const VECTOR& input, VECTOR& output);
 
   /*
   surface condensation
@@ -232,8 +232,8 @@ public:
   };
 
   void resetPartitionedAdaptiveMixedSim();
-  void initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VECTOR& isFulsim);
-  void initPartitionedAdaptiveMixedSim(vector<int>& contactVertices, VECTOR& keepFullsim, VECTOR& isFulsim);
+  void initPartitionedHybridSim(vector<int>& contactVertices, VECTOR& isFulsim);
+  void initPartitionedHybridSim(vector<int>& contactVertices, VECTOR& keepFullsim, VECTOR& isFulsim);
 
   inline vector<int>& adaptivePartitionedVertexOrdering(int x) { return _adaptivePartitionedVertexOrdering[x]; };
   inline vector<int>& partitionedFullsimDofs() { return _partitionedFullsimDofs; };
@@ -256,9 +256,6 @@ public:
   }
   inline bool isCloned(int vertexID) { return _vertexNumberOfCopies[vertexID] > 1; }
 
-  void interpolateToLowresMesh(const VECTOR& input, VECTOR& output);
-  void interpolateFromLowresMesh(const VECTOR& input, VECTOR& output);
-
   void computeAndWritePartitionedFullsimTetSurfaces(const string& filename);
 
 protected:
@@ -267,6 +264,9 @@ protected:
   vector<VEC3F> _restPose;
   VECTOR _surfaceNormals;
 
+  /*
+  signed distance field of the rest mesh
+  */
   SPARSE_SDF _restSDF;
 
   COO_MATRIX _masses;
@@ -290,6 +290,9 @@ protected:
   // maps vertex address to its index in _vertices
   map<VEC3F*, int> _vertexID;
 
+  /*
+  map the id of each vertex to the tet ids that it belongs to
+  */
   map<int, vector<int> > _tetMembership;
 
   vector<TET> _tets;
@@ -300,6 +303,7 @@ protected:
   map<TRIANGLE*, Real> _restSurfaceFaceAreas;
   map<VEC3F*, Real> _restSurfaceVertexAreas;
 
+
   vector<vector<VEC3F*> > _surfaceVertexOneRings;
 
   // lowres embedding, used for self collision detection
@@ -309,8 +313,6 @@ protected:
   vector<TET>   _lowresTets;
   vector<TRIANGLE> _lowresSurfaceFaces;
   vector<int>   _lowToHighID;
-  vector<pair<int, QUATERNION> > _highToLowInternalBaryCentricCoordinates;
-  vector<pair<int, VEC3F> > _highToLowSurfaceBaryCentricCoordinates;
   
   vector<pair<int, QUATERNION> > _lowToHighInternalBaryCentricCoordinates;
   vector<pair<int, VEC3F> > _lowToHighSurfaceBaryCentricCoordinates;
@@ -355,9 +357,6 @@ protected:
   vector<int> _partitionDofStartIdx;
   vector<int> _tetPartitions;
 
-  /* 
-  condensation
-  */
   vector<int> _surfaceTetIDs;
   vector<vector<int> > _partitionedSurfaceTetIDs;
   vector<int> _partitionedSurfaceVertexSize;
@@ -365,6 +364,9 @@ protected:
   int _partitionedSurfaceDofs;
   vector<int> _partitionSurfaceDofStartIdx;
 
+  /* 
+  condensation
+  */
   BLOCK_COO_MATRIX _partitionedStiffness;
   VECTOR     _partitionedR;
   BLOCK_SPARSE_MATRIX _partitionedFullStiffnessDiag;
@@ -381,7 +383,6 @@ protected:
   vector<int> _partitionedReducedsimDofs;
   vector<vector<int> > _partitionedFullsimTetIDs;
   vector<int> _partitionFullsimDofStartIdx;
-  Real _maxContactNodeGeodist;
 
   vector<vector<int> > _vertexAdjacency;
 };

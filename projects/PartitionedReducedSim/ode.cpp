@@ -32,7 +32,7 @@ public:
     drawSkeleton(false),
     drawSCD(false),
     currentFrame(0),
-    lastFrame(0),
+    previousFrame(0),
     simulate(false)
   {
     if(!SIMPLE_PARSER::parse(configName))
@@ -140,7 +140,7 @@ public:
       tetMesh->writeDisplacementFromRest(dataPath + IO::itoPaddedString(currentFrame) + ".state");
     }
 
-    lastFrame = currentFrame;
+    previousFrame = currentFrame;
     currentFrame += skipFrame;
   }
 
@@ -186,7 +186,7 @@ public:
   int endFrame;
   int skipFrame;
   int currentFrame;
-  int lastFrame;
+  int previousFrame;
 
   bool simulate;
 

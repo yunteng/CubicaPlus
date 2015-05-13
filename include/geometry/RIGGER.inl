@@ -92,8 +92,6 @@ void RIGGER<BONE>::drawBoneSkinning(int boneID)
       vertexIDs[y] = _tetMesh->vertexID(vertices[y]);
     }
 
-    // get the weights
-    // float weights[3];
     VEC3F vertexColors[3];
     bool draw = false;
 
@@ -156,13 +154,7 @@ void RIGGER<BONE>::drawBoneSkinning()
       for (unsigned int z = 0; z < weightVector.size(); z++)
       {
         vertexColors[y] += boneColors[weightVector[z].first] * weightVector[z].second;
-        // if(weightVector[z].first == bone)
-          // weights[y] = weightVector[z].second;
       }
-
-      // weights[y] *= 3.0;
-
-      // weights[y] = (weights[y] > 1.0) ? 1.0 : weights[y];
     }
 
     VEC3F normal = (*vertices[1] - *vertices[0]).cross(*vertices[2] - *vertices[0]);
@@ -174,19 +166,20 @@ void RIGGER<BONE>::drawBoneSkinning()
 
     glBegin(GL_TRIANGLES);
       glNormal3d(normal[0], normal[1], normal[2]);
-      //glColor4f(weights[0], 0.0, 1.0 - weights[0],1);
       glColor4f(vertexColors[0][0], vertexColors[0][1], vertexColors[0][2], 1);
       glVertex3f(v0[0], v0[1], v0[2]);
-      //glColor4f(weights[1], 0.0, 1.0 - weights[1],1);
       glColor4f(vertexColors[1][0], vertexColors[1][1], vertexColors[1][2], 1);
       glVertex3f(v1[0], v1[1], v1[2]);
-      //glColor4f(weights[2], 0.0, 1.0 - weights[2],1);
       glColor4f(vertexColors[2][0], vertexColors[2][1], vertexColors[2][2], 1);
       glVertex3f(v2[0], v2[1], v2[2]);
     glEnd();
   }
 }
 
+/*
+partition the tets based on the current skinning weights, each tet is associated with 
+the most influencing bone
+*/
 template<class BONE>
 void RIGGER<BONE>::buildSkinningPartition(vector<int>& tetPartitions)
 {
@@ -198,16 +191,6 @@ void RIGGER<BONE>::buildSkinningPartition(vector<int>& tetPartitions)
 
     for(int y = 0; y < 4; y++){
       int vertexID = _tetMesh->vertexID(tet.vertices[y]);
-      /*vector<pair<int, Real> >& weights = _skinning[vertexID];
-      // partitionVotes[weights[0].first]++;
-      Real maxWeight = weights[0].second;
-      Real bestP = weights[0].first;
-      for(unsigned z = 1; z < weights.size(); z++){
-        if(weights[z].second > maxWeight){
-          maxWeight = weights[z].second;
-          bestP = weights[z].first;
-        }
-      }*/
       partitionVotes[_maxWeightIndex[vertexID]]++;
     }
 
@@ -224,6 +207,10 @@ void RIGGER<BONE>::buildSkinningPartition(vector<int>& tetPartitions)
     tetPartitions[x] = winningPartition;
   }
 }
+
+/*
+associate each vertex with its nearest bone
+*/
 template<class BONE>
 void RIGGER<BONE>::buildRigidSkinning()
 {
@@ -279,6 +266,9 @@ void RIGGER<BONE>::buildRigidSkinning()
   cout << "done." << endl;
 }
 
+/*
+normalize the weight sum for each vertex to 1
+*/
 template<class BONE>
 void RIGGER<BONE>::normalizeWeights()
 {
@@ -301,6 +291,12 @@ void RIGGER<BONE>::normalizeWeights()
     }
   }
 }
+
+/*
+partition either the original mesh or its 
+low-res embedding based on the current
+skinning weights, used for collision detection
+*/
 template<class BONE>
 void RIGGER<BONE>::buildSkinningPartition(vector<vector<int> >& partitionSurfaceVertices, vector<vector<int> >& partitionTets, bool useLowresTets)
 {
@@ -342,17 +338,6 @@ void RIGGER<BONE>::buildSkinningPartition(vector<vector<int> >& partitionSurface
       int lowVertexID = _tetMesh->lowresVertexID(tet.vertices[y]);
       int vertexID = _tetMesh->lowToHighID()[lowVertexID];
       
-      /*vector<pair<int, Real> >& weights = _skinning[vertexID];
-
-      Real maxWeight = weights[0].second;
-      Real bestP = weights[0].first;
-      for(unsigned z = 1; z < weights.size(); z++){
-        if(weights[z].second > maxWeight){
-          maxWeight = weights[z].second;
-          bestP = weights[z].first;
-        }
-      }*/
-      // partitionVotes[weights[0].first]++;
       partitionVotes[_maxWeightIndex[vertexID]]++;
     }
 
@@ -368,7 +353,9 @@ void RIGGER<BONE>::buildSkinningPartition(vector<vector<int> >& partitionSurface
     partitionTets[winningPartition].push_back(x);
   }
 }
-
+/*
+constrain tets that are penetraed by the skeleton
+*/
 template<class BONE>
 void RIGGER<BONE>::constrainBoneTets()
 {
@@ -445,7 +432,7 @@ void RIGGER<BONE>::computeDQblend(int vertexID, DUAL_QUATERNION& dq_blend)
     int b = weights[y].first;
     Real w = weights[y].second;
 
-    DUAL_QUATERNION dq = _skeleton->bones()[b]->dualQuaternionFromRest();
+    DUAL_QUATERNION& dq = _skeleton->bones()[b]->dualQuaternionFromRest();
 
     if(dq.rotation().dot(maxq) < 0){
       w *= -1;
@@ -467,9 +454,6 @@ void RIGGER<BONE>::updateDualQuaternionSkinning(bool fromRest)
   if(_skinningRotation.size() != _tetMesh->unconstrainedNodes())
     _skinningRotation.resize(_tetMesh->unconstrainedNodes());
 
-  bool constrainedOnly = false;
-
-  int start = (constrainedOnly) ? _tetMesh->unconstrainedNodes() : 0;
   vector<VEC3F>& vertices = _tetMesh->vertices();
   vector<VEC3F>& restPose = _tetMesh->restPose();
 
@@ -480,7 +464,7 @@ void RIGGER<BONE>::updateDualQuaternionSkinning(bool fromRest)
   #pragma omp parallel for schedule(static)
   #endif
   // for each (constrained) vertex
-  for (unsigned int x = start; x < restPose.size(); x++)
+  for (unsigned int x = 0; x < restPose.size(); x++)
   {
     DUAL_QUATERNION dq_blend;
     computeDQblend(x, dq_blend);
@@ -499,6 +483,9 @@ void RIGGER<BONE>::updateDualQuaternionSkinning(bool fromRest)
   }
 }
 
+/*
+pull back the training samples to before-skinning space
+*/
 template<class BONE>
 void RIGGER<BONE>::inverseTransformTrainingSamples()
 {

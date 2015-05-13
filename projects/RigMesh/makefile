@@ -3,9 +3,8 @@ include ../common.inc
 ODE = ../../bin/RigMesh
 
 SOURCEC    = $(UTILSRC) \
-						 $(GEOMETRYSRC) \
-						 $(MATERIAL) \
-						 $(CUBATURE)
+             $(GEOMETRYSRC) \
+             $(MATERIAL)
 
 OBJSC = $(SOURCEC:.cpp=.o)
 

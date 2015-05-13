@@ -92,11 +92,30 @@ private:
   SELF_COLLISION_DETECTOR<BONE>* _scd;
   RIGGER<BONE>* _rigger;
 
-  vector<int> _previousFullDofs;
+  /*
+  the dofs in each partition that will be 
+  simulated in full space
+  */
   vector<int>& _fullDofs;
+  /*
+  fullDofs in the previous frame
+  */
+  vector<int> _previousFullDofs;
+  /*
+  the dofs in each partition that will be
+  simulated in subspace
+  */
   vector<int>& _reducedDofs;
+
+  /*
+  if any partition is entirely simulated 
+  in full space
+  */
   bool _hasEntireFullPartitions;
 
+  /*
+  the delta subspace coordinates
+  */
   VECTOR _qi;
 
   VECTOR _gradient;
@@ -105,6 +124,10 @@ private:
   VECTOR _reducedRegionGradient;
 
   SpMat _hessian;
+
+  /*
+  partitioned world space displacement vector
+  */
   VECTOR _partitionedX;
 
   MATRIX _reducedKss;
@@ -114,15 +137,20 @@ private:
 
   LU_SOLVER _reducedKssInv;
 
-  MATRIX _completeReducedInterfaceJacobians;
+  MATRIX _reducedInterfaceJacobians;
 
+  /*
+  transformed (with skinning rotation) basis
+  the rows are reordered according to current
+  condensation partitioning
+  */
   vector<MATRIX> _transformedUs;
+  /*
+  untransformed basis, the rows are reordered 
+  according to current condensation partitioning
+  */
   vector<MATRIX> _untransformedUs;
 
-  // vector<MATRIX3> _transform;
-  // vector<MATRIX3> _inverseTransform;
-  // VECTOR _skinningDisp;
-  VECTOR _restDisp;
   VECTOR _workspace;
   VECTOR _workspace2;
 
@@ -130,7 +158,7 @@ private:
 
   bool _dynamic;
 
-  VECTOR _natualOrderedMass;
+  VECTOR _defaultOrderMass;
   VECTOR _diagMass;
   vector<MATRIX> _reducedMasses;
 
@@ -146,7 +174,10 @@ private:
 
   MATRIX _fixedReducedHessian;
 
-  vector<SpMat> _UTKis;
+  /*
+  U_s^T * K_sf
+  */
+  vector<SpMat> _UTKsf;
 
   VECTOR _positionOld;
   VECTOR _velocity;
@@ -169,7 +200,9 @@ private:
   MATRIX* _SCJacobianCopies;
 
 private:
+  // self collision penalty spring constant
   Real _scfMultiplier;
+  // partition interface spring constant
   Real _interfaceSpringConstant;
 };
 

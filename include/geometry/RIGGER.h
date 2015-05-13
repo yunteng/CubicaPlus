@@ -28,14 +28,31 @@ public:
   */
   void drawBoneSkinning();
   void drawBoneSkinning(int boneID);
+  
   /*
-  rigging functions
+  constrain tets that are penetraed by the skeleton
   */
   void constrainBoneTets();
+  
+  /*
+  associate each vertex with its nearest bone
+  */
   void buildRigidSkinning();
+
+  /*
+  compute diffusion skinning weights
+  */
+  void buildDiffusionSkinning();
+
+  /*
+  partition the tets based on the current skinning weights, each tet is associated with 
+  the most influencing bone
+  */
   void buildSkinningPartition(vector<int>& tetPartitions);
 
-  // update the mesh from previous pose or the rest pose
+  /*
+  update the mesh from previous pose or the rest pose
+  */
   void updateSkinning(bool fromRest)
   {
     if(_skinningMethod.compare("dual quaternion") == 0)
@@ -50,14 +67,11 @@ public:
   }
 
   void updateDualQuaternionSkinning(bool fromRest);
-
-  /*
-  compute diffusion skinning weights
-  */
-  void buildDiffusionSkinning();
   
   /*
-  partition either the original mesh or its low-res embedding, used for collision detection
+  partition either the original mesh or its 
+  low-res embedding based on the current
+  skinning weights, used for collision detection
   */
   void buildSkinningPartition(vector<vector<int> >& partitionSurfaceVertices, vector<vector<int> >& partitionTets, bool useLowresTets);
 
@@ -104,6 +118,9 @@ private:
   vector<vector<pair<int, Real> > > _skinning;
   vector<int> _maxWeightIndex;
 
+  /*
+  skinning displacement vector for the unconstrained vertices
+  */
   VECTOR _skinningDisp;
   vector<MATRIX3> _skinningRotation;
 };

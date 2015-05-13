@@ -24,7 +24,7 @@ public:
     drawSkeleton(false),
     drawConstrained(false),
     currentFrame(0),
-    lastFrame(0)
+    previousFrame(0)
   {
     if(!SIMPLE_PARSER::parse(configName))
         exit(0);
@@ -69,15 +69,15 @@ public:
 
     rigger = new Rigger(skeleton, tetMesh);
     if(!tetMesh->constrained()){
+      // constrain the tets penetrated by the skeleton
       rigger->constrainBoneTets();
       delete rigger;
       delete tetMesh;
 
+      // reload the tetmesh since the vertex orderings are changed
       tetMesh = new TET_MESH();
       rigger = new Rigger(skeleton, tetMesh);
     }
-    
-    rigger->buildRigidSkinning();
     
     if(!rigger->readBoneWeights(outputPath + tetmeshName + ".diffusionSkinningWeights")){
       rigger->buildDiffusionSkinning();
@@ -111,7 +111,7 @@ public:
     
     TIMING_BREAKDOWN::endFrame();
 
-    lastFrame = currentFrame;
+    previousFrame = currentFrame;
     currentFrame += skipFrame;
   }
 
@@ -155,7 +155,7 @@ public:
   int endFrame;
   int skipFrame;
   int currentFrame;
-  int lastFrame;
+  int previousFrame;
 
   bool drawSkeleton;
   bool drawConstrained;

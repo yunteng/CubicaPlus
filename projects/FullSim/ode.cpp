@@ -37,7 +37,7 @@ public:
     drawSkeleton(false),
     drawSCD(false),
     currentFrame(0),
-    lastFrame(0),
+    previousFrame(0),
     simulate(false)
   {
     if(!SIMPLE_PARSER::parse(configName))
@@ -161,7 +161,7 @@ public:
       integrator->writeSelfCollisionResponses(dataPath + IO::itoPaddedString(currentFrame) + ".collisionresponse");
     }
 
-    lastFrame = currentFrame;
+    previousFrame = currentFrame;
     currentFrame += skipFrame;
   }
 
@@ -199,7 +199,7 @@ public:
   
   int startFrame;
   int endFrame;
-  int lastFrame;
+  int previousFrame;
   int skipFrame;
   int currentFrame;
 

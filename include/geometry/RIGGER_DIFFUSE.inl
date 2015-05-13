@@ -19,14 +19,14 @@ void RIGGER<BONE>::computeConductionRHS(int boneIndex, Real conductance, VECTOR&
   for(int i = 0; i < _distsToNearest.size(); ++i) {
     if(_nearestBones[i] == boneIndex)
       rhs[i] = conductionWeight(conductance, _distsToNearest[i]);
-    // }else
-      // rhs[i] = 0;
   }
 }
 
 template<class BONE>
 void RIGGER<BONE>::buildDiffusionSkinning()
 {
+  buildRigidSkinning();
+
   cout << " Compute diffusion skinning weights..." << endl;
 
   cout << "  compute vertex adjacency..."; flush(cout);
@@ -74,7 +74,6 @@ void RIGGER<BONE>::buildDiffusionSkinning()
       }
       w = std::min(std::max(w, 0.0), 1.0);
       _skinning[j].push_back(make_pair(i, w));
-      // outWeights.insert(j, i) = w;
     } 
   }
   cout << " done." << endl;

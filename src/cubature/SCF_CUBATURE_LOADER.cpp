@@ -191,6 +191,10 @@ void PAIRWISE_SCF_CUBATURES::read(string filename)
 }
 bool SCF_CUBATURE_LOADER::getCubatureSurfaceVertices(pair<int, int> partitionPair, const VEC3F& relativeTranslation, const QUATERNION& relativeRotation, vector<pair<int, Real> >& leftVertices, vector<pair<int, Real> >& rightVertices)
 {
+  /*
+  in the database leftPartition < rightPartition,
+  so swap the current lookup pair if necessary
+  */
   bool swap = false;
   if(partitionPair.first > partitionPair.second){
     swap = true;

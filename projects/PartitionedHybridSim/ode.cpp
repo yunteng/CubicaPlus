@@ -36,10 +36,10 @@ public:
     preconditioner(NULL),
     cgSolver(NULL),
     optimizer(NULL),
-    drawSkeleton(false),
+    drawFullsimRegion(false),
     drawSCD(false),
     currentFrame(0),
-    lastFrame(0),
+    previousFrame(0),
     simulate(false)
   {
     if(!SIMPLE_PARSER::parse(configName))
@@ -102,21 +102,43 @@ public:
 
     rigger = new Rigger(skeleton, tetMesh);
     
+    /*
+    read skinning weights
+    */
     rigger->readBoneWeights(outputPath + tetmeshName + ".diffusionSkinningWeights");
 
+    /*
+    Partition the mesh, associate each tet with the bone that has maximum weights on its vertices
+    */
     vector<int> tetPartitions;
     rigger->buildSkinningPartition(tetPartitions);
     tetMesh->buildPartitions(tetPartitions);
+    /*
+    Load basis for each partition
+    */
     tetMesh->loadPartitionBases();
+    /*
+    Load material force cubatures for each 
+    partition, the self collision cubatures
+    are loaded in self collision detector
+    */
     tetMesh->loadPartitionCubatures();
 
     if(simulate){
       integrator = new Integrator(tetMesh, rigger);
+      /*
+      initialize PCG
+      */
       preconditioner = new Preconditioner(integrator);
       cgSolver = new CGSolver(integrator, preconditioner);
+      /*
+      the Newton solver
+      */
       optimizer = new Optimizer(integrator, cgSolver);
     }
-
+    /*
+    allow the simulation to start from a precomputed non-rest pose
+    */
     int preloadFrame = SIMPLE_PARSER::getInt("preload frame", 0);
     if(preloadFrame != 0){
       tetMesh->reset();
@@ -137,10 +159,11 @@ public:
     rigger->drawBoneSkinning();
     // tetMesh->drawSurfaceFaces();
 
-    if(drawSkeleton)
+    if(drawFullsimRegion)
       // skeleton->drawBones();
       tetMesh->drawFullsimVertices();
 
+    // draw self collision vertices
     if(integrator != NULL && drawSCD){
       integrator->scd()->drawSelfCollisionPoints();
     }
@@ -152,12 +175,9 @@ public:
 
     TIMING_BREAKDOWN::startFrame();
 
-
+    // load skeleton and perform skinning update
     string filename = posePath + skeletonPrefix + IO::itoPaddedString(currentFrame) + ".skeleton";
     if(skeleton->loadFrame(filename)){
-
-      skeleton->fixSkeletonStructure();
-      bool fromRest = false;
 
       TIMING_BREAKDOWN::tic();
       rigger->updateSkinning(fromRest);
@@ -175,7 +195,7 @@ public:
       tetMesh->writeDisplacementFromRest(dataPath + IO::itoPaddedString(currentFrame) + ".state");
     }
       
-    lastFrame = currentFrame;
+    previousFrame = currentFrame;
     currentFrame += skipFrame;
   }
 
@@ -183,7 +203,7 @@ public:
   {
     switch(key){
       case 'k':{
-        drawSkeleton = !drawSkeleton;
+        drawFullsimRegion = !drawFullsimRegion;
         break;
       }
       case 'e':{
@@ -224,11 +244,11 @@ public:
   int endFrame;
   int skipFrame;
   int currentFrame;
-  int lastFrame;
+  int previousFrame;
 
   bool simulate;
 
-  bool drawSkeleton;
+  bool drawFullsimRegion;
   bool drawSCD;
 
   string configName;

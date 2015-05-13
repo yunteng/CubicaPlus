@@ -4,7 +4,9 @@
 #include <SETTINGS.h>
 #include <fstream>
 #include <util/MERSENNETWISTER.h>
-
+/*
+implementation of the Non-negative Hard-Threshold Pursuing algorithm in C. von Tycowicz, C. Schulz, H.-P. Seidel, and K. Hildebrandt, An efficient construction of reduced deformable objects.
+*/
 template<class APP>
 class NNHTP_CUBATURE_GENERATOR
 {

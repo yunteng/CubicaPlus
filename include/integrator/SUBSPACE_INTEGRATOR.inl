@@ -88,10 +88,6 @@ void SUBSPACE_INTEGRATOR<MATERIAL_CACHE, BONE>::initializeImplicitStep()
   // recover q
   if(_useTransformedBasis){
 
-    // TIMING_BREAKDOWN::tic();
-    // _rigger->computeSkinningTransformation(_rigger->skinningRotation(), _inverseTransform, _skinningDisp);
-    // TIMING_BREAKDOWN::toc("Compute Skinning Transformation");
-
     TIMING_BREAKDOWN::tic();
     VECTOR restDisp = _tetMesh->x() - _rigger->skinningDisp();
     vector<MATRIX3>& skinningRotation = _rigger->skinningRotation();
@@ -104,7 +100,7 @@ void SUBSPACE_INTEGRATOR<MATERIAL_CACHE, BONE>::initializeImplicitStep()
     }
 
     _tetMesh->q() = _tetMesh->U().transpose() * restDisp;
-    TIMING_BREAKDOWN::toc("Recover transformed q");
+    TIMING_BREAKDOWN::toc("Recover q");
 
     if(!_useKrysl){
       TIMING_BREAKDOWN::tic();
