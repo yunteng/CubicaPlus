@@ -180,6 +180,7 @@ public:
     if(skeleton->loadFrame(filename)){
 
       TIMING_BREAKDOWN::tic();
+      bool fromRest = false;
       rigger->updateSkinning(fromRest);
       TIMING_BREAKDOWN::toc("Update Skinning");
     }
