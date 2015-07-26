@@ -35,19 +35,13 @@ CUBATURE = ../../src/cubature/SCF_CUBATURE_LOADER.cpp
 
 GLFLAGS = -L/usr/lib/ -framework GLUT -framework OpenGL -framework Cocoa -framework Accelerate
 
-CC = /usr/local/bin/clang++
-#CC = /Users/yunteng/lib/llvmbuild/Release+Asserts/bin/clang++
+CC = /Users/yunteng/lib/llvmbuild/Release+Asserts/bin/clang++
 
 CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -Wno-c++11-compat-deprecated-writable-strings -fopenmp -c \
             -I../../ \
+            -I/usr/include/c++/4.2.1/ \
             -I../../include \
             -I../../include/dtgrid \
-            -I../../include/glvu \
-            -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/include/c++/4.2.1/ 
-            #-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 \
-            #-I/usr/include/c++/4.2.1/  
+            -I../../include/glvu
  
-LDFLAGS_COMMON = ${GLFLAGS} -fopenmp -framework vecLib /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib
-
-#/usr/lib/libstdc++.dylib
-#-L/opt/local/lib -lsuperlu -L/usr/local/lib -lgfortran /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib
+LDFLAGS_COMMON = ${GLFLAGS} -fopenmp -framework vecLib /usr/lib/libstdc++.dylib
