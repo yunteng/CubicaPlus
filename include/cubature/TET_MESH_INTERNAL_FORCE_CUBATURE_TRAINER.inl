@@ -37,7 +37,6 @@ int TET_MESH_INTERNAL_FORCE_CUBATURE_TRAINER<MATERIAL_CACHE, BONE>::gatherTraini
       string skeletonFilename = posePath + skeletonPrefix + snapshotIdx[x] + ".skeleton";
 
       _rigger->skeleton()->loadFrame(skeletonFilename);
-      _rigger->skeleton()->fixSkeletonStructure();
       bool fromRest = true;
 
       TIMING_BREAKDOWN::tic();

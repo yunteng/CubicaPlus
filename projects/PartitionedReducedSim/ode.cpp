@@ -120,8 +120,6 @@ public:
 
     string filename = posePath + skeletonPrefix + IO::itoPaddedString(currentFrame) + ".skeleton";
     if(skeleton->loadFrame(filename)){
-
-      // skeleton->fixSkeletonStructure();
       bool fromRest = false;
 
       TIMING_BREAKDOWN::tic();

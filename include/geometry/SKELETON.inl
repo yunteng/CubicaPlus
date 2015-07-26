@@ -120,6 +120,11 @@ bool SKELETON<BONE>::loadFrame(const string& filename)
     }
   }
   fclose(file);
+  
+  // Adjust the current pose to follow the obey 
+  // constraints of the rest pose. This doesn't
+  // do anything if "loadSturcture" is not called
+  fixSkeletonStructure();
 
   if(SIMPLE_PARSER::getBool("verbose", false))
     cout << "loaded skeleton frame " << filename << endl;

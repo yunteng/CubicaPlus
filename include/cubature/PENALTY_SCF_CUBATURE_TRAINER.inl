@@ -32,7 +32,6 @@ VECTOR PENALTY_SCF_CUBATURE_TRAINER<BONE>::getTransformedColumn(string poseID)
   string skeletonFilename = SIMPLE_PARSER::getString("pose path", "") + SIMPLE_PARSER::getString("skeleton prefix", "") + poseID + ".skeleton";
 
   _rigger->skeleton()->loadFrame(skeletonFilename);
-  _rigger->skeleton()->fixSkeletonStructure();
 
   _tetMesh->readDisplacementFromRest(SIMPLE_PARSER::getString("data path", "") + poseID + ".state");
 
@@ -76,7 +75,6 @@ void PENALTY_SCF_CUBATURE_TRAINER<BONE>::groupPoses(const vector<string>& snapsh
     string skeletonFilename = posePath + skeletonPrefix + snapshotIdx[x] + ".skeleton";
 
     _rigger->skeleton()->loadFrame(skeletonFilename);
-    _rigger->skeleton()->fixSkeletonStructure();
 
     VEC3F relativeTranslation;
     QUATERNION relativeRotation;
@@ -87,7 +85,6 @@ void PENALTY_SCF_CUBATURE_TRAINER<BONE>::groupPoses(const vector<string>& snapsh
 
       skeletonFilename = posePath + skeletonPrefix + snapshotIdx[y] + ".skeleton";
       _rigger->skeleton()->loadFrame(skeletonFilename);
-      _rigger->skeleton()->fixSkeletonStructure();
 
       VEC3F tmpRelativeTranslation;
       QUATERNION tmpRelativeRotation;
@@ -236,7 +233,6 @@ int PENALTY_SCF_CUBATURE_TRAINER<BONE>::gatherTrainingData(const string& poseID)
   string skeletonFilename = SIMPLE_PARSER::getString("pose path", "") + SIMPLE_PARSER::getString("skeleton prefix", "") + poseID + ".skeleton";
 
   _rigger->skeleton()->loadFrame(skeletonFilename);
-  _rigger->skeleton()->fixSkeletonStructure();
   bool fromRest = true;
 
   TIMING_BREAKDOWN::tic();

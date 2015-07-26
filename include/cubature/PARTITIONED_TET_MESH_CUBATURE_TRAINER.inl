@@ -54,7 +54,7 @@ int PARTITIONED_TET_MESH_CUBATURE_TRAINER<MATERIAL_CACHE, BONE>::gatherTrainingD
     string skeletonFilename = posePath + skeletonPrefix + snapshotIdx[x] + ".skeleton";
 
     _rigger->skeleton()->loadFrame(skeletonFilename);
-    _rigger->skeleton()->fixSkeletonStructure();
+
     bool fromRest = true;
 
     TIMING_BREAKDOWN::tic();

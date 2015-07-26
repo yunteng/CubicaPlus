@@ -505,7 +505,6 @@ void RIGGER<BONE>::inverseTransformTrainingSamples()
 
     string skeletonFile = posePath + skeletonPrefix + snapshotIdx[x] + ".skeleton";
     _skeleton->loadFrame(skeletonFile);
-    _skeleton->fixSkeletonStructure();
 
     VECTOR restDisp(worldDisp.size());
     int nVertices = restDisp.size() / 3;

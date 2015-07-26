@@ -112,7 +112,6 @@ public:
       tetMesh->reset();
       string filename = posePath + skeletonPrefix + IO::itoPaddedString(preloadFrame) + ".skeleton";
       skeleton->loadFrame(filename);
-      skeleton->fixSkeletonStructure();
       Real fromRest = true;
       // just in case there is no precompute displacement for this frame
       // update using skinning weights first
