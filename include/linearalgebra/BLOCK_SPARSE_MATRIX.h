@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef BLOCK_SPARSE_MATRIX_H
 #define BLOCK_SPARSE_MATRIX_H
 
@@ -83,9 +90,5 @@ protected:
   vector<int> _subRows;
   vector<int> _subCols;
 };
-
-// BLOCK_VECTOR operator*(BLOCK_SPARSE_MATRIX& A, BLOCK_VECTOR& v);
-// VECTOR operator*(const BLOCK_SPARSE_MATRIX& A, const VECTOR& v);
-// BLOCK_SPARSE_MATRIX operator+(const BLOCK_SPARSE_MATRIX& A, const BLOCK_SPARSE_MATRIX& B);
 
 #endif

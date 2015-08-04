@@ -1,28 +1,14 @@
-/*
-This file is part of Cubica.
- 
-Cubica is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Cubica is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Cubica.  If not, see <http://www.gnu.org/licenses/>.
-*/
-// 
-// Simple config file parser
-//
-// Original source code was provided courtesy of 
-// Nils Theurey (www.ntoken.com)
-//
-// Minor modifications started on 6/27/2008 by Ted Kim
-//
-//////////////////////////////////////////////////////////////////////
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ * Original source code was provided courtesy of 
+ * Nils Theurey (www.ntoken.com)
+ * Modified by Theodore Kim (http://www.mat.ucsb.edu/~kim/) and
+ * Yun Teng
+ *****************************************************************************/
 
 #ifndef SIMPLE_PARSER_H
 #define SIMPLE_PARSER_H

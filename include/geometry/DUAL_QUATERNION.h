@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef DUAL_QUATERNION_H
 #define DUAL_QUATERNION_H
 

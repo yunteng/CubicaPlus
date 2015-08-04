@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef PARTITIONED_HYBRID_INTEGRATOR_H
 #define PARTITIONED_HYBRID_INTEGRATOR_H
 

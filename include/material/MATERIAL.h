@@ -1,3 +1,11 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ * 
+ * This class is a subset of the MATERIAL class in Cubica written by Theodore Kim 
+ *****************************************************************************/
 #ifndef MATERIAL_H
 #define MATERIAL_H
 

@@ -22,8 +22,7 @@ GEOMETRYSRC = ../../src/geometry/TET.cpp \
            ../../src/geometry/SURFACE.cpp \
            ../../src/geometry/SPHERE.cpp \
            ../../src/geometry/CYLINDER.cpp \
-           ../../src/geometry/PLANE.cpp \
-           ../../src/geometry/OBJ.cpp
+           ../../src/geometry/PLANE.cpp
 
 MATERIAL = ../../src/material/COROTATION.cpp \
            ../../src/material/FULLSPACE_COROTATION_CACHE.cpp \

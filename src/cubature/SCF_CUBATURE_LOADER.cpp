@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <cubature/SCF_CUBATURE_LOADER.h>
 
 #ifdef USING_OPENMP

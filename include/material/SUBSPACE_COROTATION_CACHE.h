@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef SUBSPACE_COROTATION_CACHE_H
 #define SUBSPACE_COROTATION_CACHE_H
 

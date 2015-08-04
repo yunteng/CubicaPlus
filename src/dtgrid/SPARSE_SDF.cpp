@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <dtgrid/SPARSE_SDF.h>
 
 int SPARSE_SDF::trianglesAt(const VEC3F& position, TRIANGLE** &triangles)
