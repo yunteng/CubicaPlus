@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Conversion between RGB and HSV
+ * This code is a modification of this answer (http://stackoverflow.com/a/6930407) on 
+ * stackoverflow.
+ ******************************************************************************/
 #include <util/RGB_HSV.h>
 
 HSV RGB::toHSV() const

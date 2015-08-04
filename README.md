@@ -1,5 +1,5 @@
 ============================================
-#Introduction
+Introduction
 
 This is Cubica++, a toolkit for efficient finite element simulations of
 articulated deformable bodies containing both geometric and material non-
@@ -16,7 +16,7 @@ Various versions of this code were used to generate the examples in those
 papers.
 
 ============================================
-#Third-party libraries
+Third-party libraries
 
 To minimize the effort to compile the code, aLl necessary third-party libraries are included in this release. 
 
@@ -39,7 +39,7 @@ Other third party libraries include:
     OpenGL navigator.
 
 ============================================
-#Compiling the code
+Compiling the code
 
 Under projects: replace common.inc with one of the following: 
 common.osx.noopenmp.inc, common.osx.openmp.inc, common.linux.inc. 
@@ -53,7 +53,7 @@ cubica++ directory. It will recurse down into the projects directories
 and build all the necessary binaries. The binaries will be deposited in the bin directory.
 
 ============================================
-#Usage:
+Usage:
 
 All binaries uses our customized config file. Please see the config direcotry 
 for a few examples. Specifically, chand.fullsim.%d.cfg are for full space 
@@ -128,7 +128,7 @@ paste them into a script:
 ./bin/PartitionedHybridSim ./cfg/chand.run.cfg
 
 ============================================
-#Documentation
+Documentation
 
 The purpose of the current code release is to provide a working implementation
 of the techniques from the above papers. While every effort has been made to 
