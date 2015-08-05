@@ -46,7 +46,4 @@ CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -Wno-c++11-compat-
             #-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 \
             #-I/usr/include/c++/4.2.1/  
  
-LDFLAGS_COMMON = ${GLFLAGS} -fopenmp -framework vecLib /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib
-
-#/usr/lib/libstdc++.dylib
-#-L/opt/local/lib -lsuperlu -L/usr/local/lib -lgfortran /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib
+LDFLAGS_COMMON = ${GLFLAGS} -fopenmp /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib

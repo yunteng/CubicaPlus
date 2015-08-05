@@ -43,4 +43,4 @@ CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -Wno-c++11-compat-
             -I../../include/glvu \
             -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/include/c++/4.2.1/ 
  
-LDFLAGS_COMMON = ${GLFLAGS} -fopenmp -framework vecLib /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib
+LDFLAGS_COMMON = ${GLFLAGS} -fopenmp /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib

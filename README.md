@@ -52,6 +52,8 @@ Once all the necessary changes are made in common.inc, call make from the
 cubica++ directory. It will recurse down into the projects directories
 and build all the necessary binaries. The binaries will be deposited in the bin directory.
 
+The pipeline.sh script executes the entire workflow on the hand example, including full space simulation training, basis generation, cubature training and subspace condensation simulation.
+
 ============================================
 Usage:
 
@@ -114,18 +116,6 @@ There are 3 parameters for computing the basis in the config file:
 ./bin/PartitionedHybridSim ./cfg/chand.run.cfg
   This conducts subspace-condensation simulation on the hand calisthenic
   sequence, as in the SIGGRAPH 2015 video.
-
-Finally, here are all of the commands lumped together, so you can cut and 
-paste them into a script:
-
-./bin/ConvertTetGen ./cfg/chand.fullsim.0.cfg
-./bin/RigMesh ./cfg/chand.fullsim.0.cfg
-./fullsim.sh
-./bin/TransformDisplacements ./cfg/chand.training.cfg
-./bin/ComputeBasis ./cfg/chand.training.cfg
-./bin/PartitionedInternalForceCubature ./cfg/chand.training.cfg
-./bin/SCFCubature ./cfg/chand.training.cfg
-./bin/PartitionedHybridSim ./cfg/chand.run.cfg
 
 ============================================
 Documentation

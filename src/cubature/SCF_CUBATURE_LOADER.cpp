@@ -7,7 +7,7 @@
  *****************************************************************************/
 #include <cubature/SCF_CUBATURE_LOADER.h>
 
-#ifdef USING_OPENMP
+#if USING_OPENMP
 #include <omp.h>
 #endif
 void SCF_CUBATURE::read(FILE* file)
@@ -92,7 +92,7 @@ bool PAIRWISE_SCF_CUBATURES::blendCubatures(VECTOR& transformedPosition, vector<
       return true;
     }
 
-    weights[0] = dist[1] * dist[1] / (dist[0] * dist[0] + dist[1] * dist[1]);
+    weights[0] = dist[1] / sqrt(dist[0] * dist[0] + dist[1] * dist[1]);
 
     weights[1] = 1 - weights[0];
     

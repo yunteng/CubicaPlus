@@ -4,7 +4,8 @@ BINS = ConvertTetGen RigMesh FullSim TransformDisplacements ComputeBasis Partiti
 
 SRCS = cubature deformCD dtgrid geometry glvu linearalgebra material util
 
-all: 
+all:
+	mkdir -p bin
 	-for d in $(BINS); do (echo -e "\n==== Entering $$d ====\n";cd ./projects/$$d; make -j12;cd ../..); done
 
 cleanall: 

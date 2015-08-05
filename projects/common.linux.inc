@@ -41,8 +41,5 @@ CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -fopenmp -c \
 						-I../../include \
 						-I../../include/dtgrid \
 						-I../../include/glvu
-						#-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/include/c++/4.2.1/ 
-						#-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 \
-						#-I/usr/include/c++/4.2.1/  
  
 LDFLAGS_COMMON = ${GLFLAGS} -fopenmp

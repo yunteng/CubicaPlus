@@ -43,4 +43,4 @@ CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -Wno-c++11-compat-
             -I../../include/dtgrid
             
  
-LDFLAGS_COMMON = ${GLFLAGS} -framework vecLib -lstdc++
+LDFLAGS_COMMON = ${GLFLAGS} -lstdc++
