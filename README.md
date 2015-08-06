@@ -1,5 +1,5 @@
 ============================================
-Introduction
+#Introduction
 
 This is Cubica++, a toolkit for efficient finite element simulations of articulated deformable bodies containing both geometric and material non-linearities. In addition to providing the core features of Cubica (http://www.mat.ucsb.edu/~kim/cubica/), it implements the methods described in the papers
 
@@ -11,7 +11,7 @@ Subspace Condensation: Full Space Adaptivity for Subspace Deformations
 Various versions of this code were used to generate the examples in those papers.
 
 ============================================
-Third-party libraries
+#Third-party libraries
 
 To minimize the effort to compile the code, aLl necessary third-party libraries are included in this release. 
 
@@ -28,16 +28,16 @@ Other third party libraries include:
     All calls to GLVU are restricted to include/util/VIEWER.h and include/util/VIEWER.inl so you can easily swap to your own favoriate OpenGL navigator.
 
 ============================================
-Compiling the code
+#Compiling the code
 
-Under projects: replace common.inc with one of the following: common.osx.noopenmp.inc, common.osx.openmp.inc, common.linux.inc. The osx.openmp one uses OpenMP/Clang (https://clang-omp.github.io/) which I recall took some effort to install. If you don't want to bother with getting OpenMP to work, simply set USING_OPENMP and USING_SUBSPACE_OPENMP to 0 in include/SETTINGS.h.
+We've successfully built this code on Mac OSX 10.9 and 10.10 as well as Ubuntu 12.04. Different compiler flags are provided under the projects directory. Replace common.inc with one of the following: common.osx.noopenmp.inc, common.osx.openmp.inc, common.linux.inc. The osx.openmp one uses OpenMP/Clang (https://clang-omp.github.io/) which I recall took some effort to install. If you don't want to bother with getting OpenMP to work, simply set USING\_OPENMP and USING\_SUBSPACE\_OPENMP to 0 in include/SETTINGS.h.
 
 Once all the necessary changes are made in common.inc, call make from the cubica++ directory. It will recurse down into the projects directories and build all the necessary binaries. The binaries will be deposited in the bin directory.
 
 The pipeline.sh script executes the entire workflow on the hand example, including full space simulation training, basis generation, cubature training and subspace condensation simulation.
 
 ============================================
-Usage:
+#Usage:
 
 All binaries uses our customized config file. Please see the config direcotry for a few examples. Specifically, chand.fullsim.%d.cfg are for full space simulation, chand.training.cfg trains the subspace and chand.run.cfg is for simulation with subspace condensation.
 
@@ -74,7 +74,7 @@ This call trains the self-collision cubatures so that collisions already seen du
 This conducts subspace-condensation simulation on the hand calisthenic sequence, as in the SIGGRAPH 2015 video.
 
 ============================================
-Documentation
+#Documentation
 
 The purpose of the current code release is to provide a working implementation of the techniques from the above papers. While every effort has been made to make the code readable, it is still primarily a research prototype, and time constraints preclude its full documentation. Cubica++ follows the same coding standard as Cubica (http://www.mat.ucsb.edu/~kim/cubica/docs.html) and the code are well-organized into subdirectories based on their functionalities. Any of the main functions in the projects serves as a good entrance point to understand the code. Timers (include/util/TIMING\_BREAKDOWN.h) are inserted throughout the code for profiling and most of the time the string inside TIMING_BREAKDOWN::toc("...") explains what the chunk between tic() and toc()
 is doing.
