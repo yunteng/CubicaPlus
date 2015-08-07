@@ -22,9 +22,9 @@ public:
     posePath         = SIMPLE_PARSER::getString("pose path", "");
 
     // create working directories
-    string mkdirRender = string("mkdir ") + renderPath;
+    string mkdirRender = string("mkdir -p ") + renderPath;
     system(mkdirRender.c_str());
-    string mkdirData = string("mkdir ") + dataPath;
+    string mkdirData = string("mkdir -p ") + dataPath;
     system(mkdirData.c_str());
   };
   ~APPLICATION()

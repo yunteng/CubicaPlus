@@ -54,9 +54,9 @@ public:
     posePath         = SIMPLE_PARSER::getString("pose path", "");
 
     // create working directories
-    string mkdirRender = string("mkdir ") + renderPath;
+    string mkdirRender = string("mkdir -p ") + renderPath;
     system(mkdirRender.c_str());
-    string mkdirData = string("mkdir ") + dataPath;
+    string mkdirData = string("mkdir -p ") + dataPath;
     system(mkdirData.c_str());
 
     startFrame = SIMPLE_PARSER::getInt("start frame", 1);
@@ -270,10 +270,10 @@ template <class T>
 T* VIEWER<T>::simulator = NULL;
 
 template <class T>
-bool VIEWER<T>::animate = false;
+bool VIEWER<T>::animate = true;
 
 template <class T>
-bool VIEWER<T>::step = true;
+bool VIEWER<T>::step = false;
 
 int main(int argc, char* argv[])
 {

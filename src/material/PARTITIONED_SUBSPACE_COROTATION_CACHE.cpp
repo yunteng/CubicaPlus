@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <material/PARTITIONED_SUBSPACE_COROTATION_CACHE.h>
 #include <util/MATRIX_UTIL.h>
 #include <util/TIMING_BREAKDOWN.h>

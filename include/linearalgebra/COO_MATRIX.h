@@ -1,13 +1,20 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef COO_MATRIX_H
 #define COO_MATRIX_H
 
 #if USING_LINUX
 #include <parallel/algorithm>
 #else
-#include <algorithm>    // std::sort
+#include <algorithm>
 #endif
 
-#include <vector>       // std::vector
+#include <vector>
 #include <SETTINGS.h>
 #include <iostream>
 

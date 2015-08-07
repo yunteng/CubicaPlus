@@ -1,6 +1,12 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
+
 // SETTINGS.h: Project-wide options set in one place
-//
-//////////////////////////////////////////////////////////////////////
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
@@ -35,7 +41,6 @@ typedef Eigen::Matrix<double, 9, 9, Eigen::RowMajor> MATRIX9;
 typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
 typedef Eigen::Quaternion<double> QUATERNION;
 typedef Eigen::Triplet<double> TRIPLET;
-// typedef Eigen::DiagonalMatrix<double> DiagMat;
 #else
 typedef Eigen::Vector2f VEC2F;
 typedef Eigen::Vector3f VEC3F;
@@ -49,7 +54,6 @@ typedef Eigen::Matrix<float, 9, 9, Eigen::RowMajor> MATRIX9;
 typedef Eigen::Quaternion<float> QUATERNION;
 typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SpMat;
 typedef Eigen::Triplet<float> TRIPLET;
-// typedef Eigen::DiagonalMatrix<float> DiagMat;
 #endif
 
 // Any squared distance measured between two points will be at least this much.

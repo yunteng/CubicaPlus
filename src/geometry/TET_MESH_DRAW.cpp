@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <geometry/TET_MESH.h>
 #include <util/RGB_HSV.h>
 void TET_MESH::drawSurfaceFaces()

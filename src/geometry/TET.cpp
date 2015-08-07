@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <geometry/TET.h>
 #include <util/MATRIX_UTIL.h>
 TET::TET(VEC3F& v0, VEC3F& v1, VEC3F& v2, VEC3F& v3):

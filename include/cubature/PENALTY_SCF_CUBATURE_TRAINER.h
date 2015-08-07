@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #ifndef PENALTY_SCF_CUBATURE_TRAINER_H
 #define PENALTY_SCF_CUBATURE_TRAINER_H
 

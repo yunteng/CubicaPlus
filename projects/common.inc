@@ -22,8 +22,7 @@ GEOMETRYSRC = ../../src/geometry/TET.cpp \
            ../../src/geometry/SURFACE.cpp \
            ../../src/geometry/SPHERE.cpp \
            ../../src/geometry/CYLINDER.cpp \
-           ../../src/geometry/PLANE.cpp \
-           ../../src/geometry/OBJ.cpp
+           ../../src/geometry/PLANE.cpp
 
 MATERIAL = ../../src/material/COROTATION.cpp \
            ../../src/material/FULLSPACE_COROTATION_CACHE.cpp \
@@ -44,4 +43,4 @@ CPPFLAGS = -m64 -O2 -fpermissive -Wno-deprecated-declarations -Wno-c++11-compat-
             -I../../include/dtgrid \
             -I../../include/glvu
  
-LDFLAGS_COMMON = ${GLFLAGS} -fopenmp -framework vecLib /usr/lib/libstdc++.dylib
+LDFLAGS_COMMON = ${GLFLAGS} -fopenmp /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib/libstdc++.dylib

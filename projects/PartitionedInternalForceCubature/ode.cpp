@@ -29,11 +29,7 @@ public:
     skeleton(NULL),
     rigger(NULL),
     cubatureApp(NULL),
-    cubatureGenerator(NULL),
-    drawSkeleton(false),
-    drawSCD(false),
-    currentFrame(0),
-    simulate(false)
+    cubatureGenerator(NULL)
   {
     if(!SIMPLE_PARSER::parse(configName))
         exit(0);
@@ -42,22 +38,7 @@ public:
     skeletonPrefix   = SIMPLE_PARSER::getString("skeleton prefix", "");
 
     outputPath       = SIMPLE_PARSER::getString("output path", "");
-    renderPath       = SIMPLE_PARSER::getString("render path", "");
-    dataPath         = SIMPLE_PARSER::getString("data path", "");
     posePath         = SIMPLE_PARSER::getString("pose path", "");
-
-    // create working directories
-    string mkdirRender = string("mkdir ") + renderPath;
-    system(mkdirRender.c_str());
-    string mkdirData = string("mkdir ") + dataPath;
-    system(mkdirData.c_str());
-
-    startFrame = SIMPLE_PARSER::getInt("start frame", 1);
-    endFrame   = SIMPLE_PARSER::getInt("snapshots", 100);
-    skipFrame  = SIMPLE_PARSER::getInt("skip frame", 1);
-    currentFrame = startFrame;
-
-    simulate   = SIMPLE_PARSER::getBool("simulate full", false);
 
   };
   ~APPLICATION()
@@ -116,40 +97,14 @@ public:
 
   CubatureApp* cubatureApp;
   CubatureGenerator* cubatureGenerator;
-  
-  int startFrame;
-  int endFrame;
-  int skipFrame;
-  int currentFrame;
-
-  bool simulate;
-
-  bool drawSkeleton;
-  bool drawSCD;
 
   string configName;
 
   string tetmeshName;
   string skeletonPrefix;
   string outputPath;
-  string renderPath;
-  string dataPath;
   string posePath;
 };
-
-
-// declare static member variables
-template <class T> 
-GLVU VIEWER<T>::glvu;
-
-template <class T> 
-T* VIEWER<T>::simulator = NULL;
-
-template <class T>
-bool VIEWER<T>::animate = false;
-
-template <class T>
-bool VIEWER<T>::step = true;
 
 int main(int argc, char* argv[])
 {

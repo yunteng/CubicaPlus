@@ -1,3 +1,10 @@
+/******************************************************************************
+ *
+ * Copyright (c) 2015, Yun Teng (yunteng.cs@cs.ucsb.edu), University of
+ # California, Santa Barbara.
+ * All rights reserved.
+ *
+ *****************************************************************************/
 #include <util/NNLS.h>
 template<class APP>
 NNHTP_CUBATURE_GENERATOR<APP>::NNHTP_CUBATURE_GENERATOR(APP* app):
