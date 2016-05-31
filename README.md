@@ -4,8 +4,11 @@
 This is Cubica++, a toolkit for efficient finite element simulations of articulated deformable bodies containing both geometric and material non-linearities. In addition to providing the core features of Cubica (http://www.mat.ucsb.edu/~kim/cubica/), it implements the methods described in the papers
 
 Simulating articulated subspace self-contact.
+
   Yun Teng, Miguel A. Otaduy, and Theodore Kim. SIGGRAPH 2014
+
 Subspace Condensation: Full Space Adaptivity for Subspace Deformations
+
   Yun Teng, Mark Meyer, Tony DeRose, and Theodore Kim. SIGGRAPH 2015
 
 Various versions of this code were used to generate the examples in those papers.
